@@ -39,7 +39,7 @@ button.alt{background:linear-gradient(#5a4e3e,#322a20);border-color:#9a8764;box-
 </head>
 <body>
 <div id="app">
-  <div id="top"><span>Лом: <b id="hScrap">100</b></span><span>Топливо: <b id="hFuel">10</b>/10</span><span>Волна <b id="hWave">0</b>/10</span></div>
+  <div id="top"><span>Лом: <b id="hScrap">100</b></span><span>Топливо: <b id="hFuel">10</b>/10</span><span>Волна <b id="hWave">0</b>/<span id="hWaveMax">12</span></span></div>
   <div id="cw"><canvas id="cv"></canvas><div id="sheet"></div></div>
   <div id="bot"><button id="bWave">Начать волну</button><button id="bSpeed" class="alt" style="flex:.45">×1</button><button id="bMenu" class="alt" style="flex:.6">Меню</button></div>
 
@@ -47,13 +47,14 @@ button.alt{background:linear-gradient(#5a4e3e,#322a20);border-color:#9a8764;box-
     <img id="mHero" alt="" style="display:none">
     <h1>БЕНЗАК</h1><div class="sub">Война за бензак</div>
     <button id="mPlay">Играть</button>
+    <button id="mNew" class="alt" style="display:none">Начать сначала</button>
     <button id="mBook" class="alt">Книга комбо</button>
     <button id="mSet" class="alt">Настройки</button>
     <div id="mBest" class="sub"></div>
   </div>
   <div class="scr" id="sBook"><h2>Книга комбо</h2><div id="cards"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sSet"><h2>Настройки</h2><button id="tSound">Звук: вкл</button><button class="alt" data-back>Назад</button></div>
-  <div class="scr" id="sEnd"><h2 id="eTitle"></h2><div id="eInfo"></div><button id="eAgain">Ещё раз</button><button id="eMenu" class="alt">В меню</button></div>
+  <div class="scr" id="sEnd"><h2 id="eTitle"></h2><div id="eInfo"></div><button id="eNext" style="display:none">Следующая карта</button><button id="eAgain" class="alt">Ещё раз</button><button id="eMenu" class="alt">В меню</button></div>
 </div>
 
 <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#120a06;color:#ffb347;font:bold 20px sans-serif;z-index:99">Загрузка…</div>
