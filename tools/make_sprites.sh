@@ -14,4 +14,5 @@ b $R2/14.jpg mg_base2; b $R2/13.jpg mg_base3
 b $R2/17.jpg fl_base; b $R2/10.jpg fl_base2; b $R2/09.jpg fl_base3
 b $R2/06.jpg sp_base2; b $R2/05.jpg sp_base3
 b $R2/15.jpg gen_base; b $R2/02.jpg gen_base2; b $R2/01.jpg gen_base3
+b $R1/shield.jpg shield 307 230; b $R1/sniper.jpg sniper 288 216
 echo done
