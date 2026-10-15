@@ -25,7 +25,7 @@ function sellValue(t){return Math.floor((t.inv||TT[t.type].cost)*.5);}
 function statLine(t){
   const S=LV[t.type],lv=lvOf(t),n=lv<MAXLV,f=(a,u)=>n?a[lv-1]+u+' → '+a[lv]+u:a[lv-1]+u;
   if(t.type==='mg')return 'Урон '+f(S.dmg,'')+' · скорострельность '+f(S.rate,'/с')+' · дальность '+f(S.range,'');
-  if(t.type==='fl')return 'Урон '+f(S.dmg,'')+' · радиус '+f(S.r,'')+' · дальность '+f(S.range,'');
+  if(t.type==='fl')return 'Урон '+f(S.dmg.map((d,i)=>Math.round(d*S.rate[i])),'/с')+' · радиус '+f(S.r,'')+' · дальность '+f(S.range,'');
   if(t.type==='sp')return 'Урон '+f(S.dmg,'')+' · замедление '+(n?Math.round(S.slow[lv-1]*100)+'% → '+Math.round(S.slow[lv]*100)+'%':Math.round(S.slow[lv-1]*100)+'%')+' · дальность '+f(S.range,'');
   return 'Усиление комбо соседей: +'+25*(lv+1)+'%'+(n?' → +'+25*(lv+2)+'%':'');
 }
@@ -273,13 +273,20 @@ function step(dt){
         t.cd=1/(S.rate[li]*genK(t.f.rate,.2));
         G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.07,c:'#ffe9a0'});sfx('mg');
       }else if(t.type==='fl'){
-        const r=S.r[li]*genK(t.f.det,.25);
+        // непрерывная струя пламени: тик каждые 0.1 с, средний урон в секунду прежний (dmg × rate)
+        const r=S.r[li]*genK(t.f.det,.25),tick=S.dmg[li]*S.rate[li]*.1;
         for(const e of G.enemies){if(e.dead)continue;
-          if(Math.hypot(e.x-best.x,e.y-best.y)<=r){hurt(e,S.dmg[li]);if(t.f.vuln)e.vuln=3;}}
-        for(let k=0;k<10;k++){const a=Math.random()*6.28,v=Math.random()*r*1.6;
-          G.parts.push({x:best.x,y:best.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.4,max:.4,c:Math.random()<.5?'#ff6a1a':'#ffd24a',r:.09});}
-        G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.12,c:'#ff8a2a',w:5});
-        t.cd=1/S.rate[li];sfx('fl');
+          if(Math.hypot(e.x-best.x,e.y-best.y)<=r){hurt(e,tick);if(t.f.vuln)e.vuln=3;}}
+        const ang=t.aim,dist=Math.hypot(best.x-cx,best.y-cy),mx=cx+Math.cos(ang)*.3,my=cy+Math.sin(ang)*.3;
+        for(let k=0;k<7;k++){            // язык пламени: частицы летят от сопла к цели, растут и гаснут (жёлтый → оранжевый → красный)
+          const a=ang+(Math.random()-.5)*.34,v=Math.max(2.2,Math.min(7.5,dist/.42))*(.75+Math.random()*.4);
+          G.parts.push({x:mx,y:my,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.42+Math.random()*.16,max:.58,k:'fl',c:'#ffb030',r:.1+Math.random()*.06});}
+        for(let k=0;k<3;k++){            // очаг огня на цели
+          G.parts.push({x:best.x+(Math.random()-.5)*r,y:best.y+(Math.random()-.5)*r,vx:(Math.random()-.5)*.8,vy:-.4-Math.random()*.9,life:.35+Math.random()*.25,max:.6,k:'fl',c:'#ff8a1a',r:.12+Math.random()*.07});}
+        if(Math.random()<.35)G.parts.push({x:best.x,y:best.y-.1,vx:(Math.random()-.5)*.4,vy:-.5-Math.random()*.4,life:.9,max:.9,c:'#2a2623',r:.09});
+        t.tx=best.x;t.ty=best.y;t.fd=dist;
+        t.cd=.1;t.rec=.2;
+        if((t.snd=(t.snd||0)-.1)<=0){sfx('fl');t.snd=.5;}
       }else if(t.type==='sp'){
         hurt(best,S.dmg[li]);best.slowT=2;best.slowAmt=Math.min(.75,S.slow[li]+(t.f.elec?.1+.05*t.f.elec:0));
         t.cd=1;G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.1,c:t.f.elec?'#7fd6ff':'#c9c9c9'});sfx('sp');
@@ -936,6 +943,12 @@ function syncFx(){
     const smoke=p.c==='#1c1c1c'||p.c==='#222'||p.c==='#2a2623';
     const s=smoke?getSmoke(ns++):getGlow(ng++);
     s.visible=true;s.position.set(p.x*CELL,p.y*CELL);
+    if(p.k==='fl'){                                     // пламя: цвет по возрасту, частица растёт и тает
+      s.tint=f>.66?0xfff0a0:f>.36?0xffa020:0xff4a10;
+      s.alpha=Math.min(1,f*1.6)*.85;
+      s.width=s.height=p.r*CELL*(1.6+(1-f)*2.4);
+      continue;
+    }
     s.tint=smoke?0x2a2623:parseInt(p.c.slice(1),16);
     s.alpha=smoke?f*.55:f;
     const d=p.r*CELL*(smoke?3.2-f*1.2:2.2*(.6+f));
@@ -980,7 +993,8 @@ function syncFx(){
     if(t.type==='gen'&&G.links.some(l=>l.i===i||l.j===i))lightAt(cx,cy,1.5,.55,0xffe080);
     if(t.rec>0){
       if(t.type==='mg')lightAt(cx+Math.cos(t.aim)*.4,cy+Math.sin(t.aim)*.4,1.6,.8,0xffe0a0);
-      else if(t.type==='fl')lightAt(cx+Math.cos(t.aim)*.5,cy+Math.sin(t.aim)*.5,2.4,.9,0xffa050);
+      else if(t.type==='fl'){lightAt(cx+Math.cos(t.aim)*.5,cy+Math.sin(t.aim)*.5,2.4,.9,0xffa050);
+        if(t.tx!=null)lightAt(t.tx,t.ty,2.2,.75+.15*Math.sin(G.t*30),0xff9040);}
       else if(t.type==='sp')lightAt(cx,cy,1.3,.45,0xb0e0ff);
     }
   });
