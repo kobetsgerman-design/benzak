@@ -1,0 +1,136 @@
+# Бриф на арт для «Бензака»
+
+Положите готовые PNG в папку `assets/` **с точными именами из таблицы** и пересоберите игру
+(`python3 build.py`) — или просто отдайте мне файлы, соберу сам.
+Чего нет в папке, игра рисует запасной заглушкой, поэтому можно подключать арт по частям.
+
+## Общие правила (важно для единого стиля)
+
+- **Вид строго сверху** (top-down, ортографически), без перспективы и без наклона камеры.
+- **Свет падает слева-сверху** на всех картинках одинаково.
+- **Прозрачный фон** (PNG с альфа-каналом), кроме `map.png`.
+- **Без теней на земле** — тень игра добавляет сама.
+- **Техника смотрит вправо** (носом по оси X →).
+- **Один стиль:** рисованная (painterly) постапокалиптика: выцветший песок, ржавчина, грязно-оранжевый,
+  вытертый металл, чёрная сажа. Без крови, без логотипов и узнаваемых машин известных франшиз.
+- Объект по центру кадра, оставьте 5–8% прозрачного поля по краям.
+
+## Размеры (1 клетка = 256 px)
+
+| Файл | Размер, px | Что это |
+|---|---|---|
+| `map.png` | 1536 × 2560 | Вся карта (6×10 клеток), **без** площадок под башни |
+| `slot.png` | 256 × 256 | Площадка под башню (металлическая плита) |
+| `station.png` | 256 × 256 | Заправка: цистерна и колонка |
+| `rubble.png` | 256 × 256 | Куча обломков на месте башни |
+| `mg_base.png` / `mg_head.png` | 256 × 256 | Пулемёт: основание / вращающаяся часть |
+| `fl_base.png` / `fl_head.png` | 256 × 256 | Огнемёт: основание / вращающаяся часть |
+| `sp_base.png` / `sp_head.png` | 256 × 256 | Шипомёт: основание / вращающийся барабан |
+| `gen_base.png` | 256 × 256 | Генератор (не вращается) |
+| `raider.png` | 256 × 192 | Налётчик (багги) |
+| `biker.png` | 205 × 128 | Байкер |
+| `armor.png` | 307 × 230 | Броневик-таран |
+| `boss.png` | 512 × 256 | Босс «Боевая фура» |
+
+**Головы башен (`*_head.png`)** — отдельный слой, который крутится к цели:
+рисуйте ствол/сопло **направленным вправо**, точка вращения — **центр картинки**.
+
+## Дорога на карте
+
+Карта — сетка 6×10 клеток. Дорога идёт змейкой (толщина ≈ 0,8 клетки, по центру клетки):
+
+```
+вход ↓ (кол.0, ряд 0)
+ряд 1:  → слева направо (кол.0…5)
+ряд 2:  вниз по кол.5
+ряд 3:  ← справа налево
+ряд 4:  вниз по кол.0
+ряд 5:  → слева направо
+ряд 6:  вниз по кол.5
+ряд 7:  ← справа налево
+ряд 8–9: вниз по кол.0 до заправки (кол.0, ряд 9)
+```
+
+Центры дороги в клетках (x, y): (0.5,0.5) → (0.5,1.5) → (5.5,1.5) → (5.5,3.5) → (0.5,3.5) →
+(0.5,5.5) → (5.5,5.5) → (5.5,7.5) → (0.5,7.5) → (0.5,9.5).
+Поверх карты игра кладёт 18 плит `slot.png` и заправку `station.png`, поэтому в этих клетках
+фон должен быть спокойным (песок/камни), без важных деталей.
+Свободные клетки: ряд 0 — кол.1…5; ряд 2 — кол.0…4; ряд 4 — кол.1…5; ряд 6 — кол.0…4;
+ряды 8–9 — кол.1…5. Туда можно сажать декор: остовы машин, скелеты, колючку, шины, бочки.
+
+## Промпты (английский, для Midjourney / DALL·E / Firefly / Flux)
+
+**Общий префикс** — вставляйте перед каждым промптом:
+
+> top-down orthographic view, hand-painted game asset, gritty post-apocalyptic wasteland,
+> rusted scrap metal, weathered, desaturated sand and rust orange palette, soft top-left lighting,
+> transparent background, no ground shadow, no text, no logos, centered
+
+### Карта
+> **Prefix** + vertical game map 6x10 grid, cracked desert wasteland seen from above, a winding dark asphalt road
+> zigzagging horizontally across the map with a worn yellow center line, dusty sand, rocks, dead scrub,
+> old tires and rusty barrels beside the road, matte painted, no buildings, no characters, no towers
+
+### Площадка (`slot`)
+> **Prefix** + square riveted steel plate pad, scratched, bolted corners, dark rust, hazard marks, flat base for a turret
+
+### Заправка (`station`)
+> **Prefix** + last gas station fuel tank, horizontal steel cylinder tank with ribs, small red fuel pump,
+> concrete pad, warning stripes, patched metal
+
+### Обломки (`rubble`)
+> **Prefix** + pile of destroyed turret wreckage, twisted scrap metal, smoking, charred, embers, small flames
+
+### Пулемёт
+- `mg_base`: **Prefix** + round steel turret base with sandbags around, bolted ring, no gun
+- `mg_head`: **Prefix** + twin heavy machine gun turret top, ammo box, barrels pointing right, no base
+
+### Огнемёт
+- `fl_base`: **Prefix** + round platform with two red fuel tanks and hazard stripes, pipes, no nozzle
+- `fl_head`: **Prefix** + flamethrower nozzle on a swivel with hose, pointing right, no base
+
+### Шипомёт
+- `sp_base`: **Prefix** + dark round steel pedestal with launcher ring, no spikes
+- `sp_head`: **Prefix** + round spiked drum made of scrap, eight long steel spikes radiating, bolted hub, centered
+
+### Генератор
+> **Prefix** + junkyard power generator box, green painted metal, copper coil, cooling fan, exhaust pipe,
+> yellow lightning bolt decal, wires
+
+### Техника (смотрит вправо)
+- `raider`: **Prefix** + small scrap-built raider buggy facing right, roll cage, spiked bumper, big rear wheels,
+  helmeted driver, rusty orange body
+- `biker`: **Prefix** + raider motorcycle with rider facing right, red scarf trailing, jagged chopper frame
+- `armor`: **Prefix** + heavy armored ramming truck facing right, bolted steel plates, wedge ram with warning
+  stripes, side spikes, small slit window, six wheels
+- `boss`: **Prefix** + giant war rig truck facing right, huge spiked trailer, red cab, chrome exhaust stacks,
+  mounted flamethrower, skull emblem, scrap armor, menacing
+
+## Советы по генерации
+
+1. Сначала сделайте **один** эталон (например, `armor`) и повторяйте его стиль в остальных:
+   в Midjourney — `--sref` ссылкой на эталон, в DALL·E/Firefly — «same style as the reference».
+2. Вид сверху нейросети часто «заваливают» в изометрию. Добавляйте `flat top-down, 90 degree camera angle, plan view`.
+3. Фон убирайте в Photoshop/Photopea/remove.bg. Для `*_head` отрежьте основание.
+4. Если картинка получилась большой — это нормально, игра масштабирует. Главное — пропорции из таблицы.
+
+## Как подключить
+
+```bash
+python3 build.py            # соберёт ../Benzak.html (один файл, работает по двойному клику)
+```
+
+## Уровни башен (необязательный арт)
+
+У башен 3 уровня. Если положить в `assets/` файлы ниже, игра покажет их вместо базовых; если файла нет —
+берётся обычный спрайт, голова чуть крупнее и над башней рисуются золотые шевроны (ур.2 — один, ур.3 — два).
+Размер и правила те же, что у базовых (256 × 256, прозрачный фон, голова смотрит вправо, вращение вокруг центра).
+
+| Файлы | Что нарисовать |
+|---|---|
+| `mg_base2.png`, `mg_head2.png`, `mg_base3.png`, `mg_head3.png` | Пулемёт: ур.2 — броневые щитки, спаренные стволы длиннее; ур.3 — тяжёлый кожух, 3 ствола, патронная лента |
+| `fl_base2.png`, `fl_head2.png`, `fl_base3.png`, `fl_head3.png` | Огнемёт: ур.2 — 3 баллона, толстый шланг; ур.3 — большое сопло, броня, форсунки |
+| `sp_base2.png`, `sp_head2.png`, `sp_base3.png`, `sp_head3.png` | Шипомёт: ур.2 — шипы длиннее, тёмный барабан; ур.3 — двойное кольцо шипов, усиленная ступица |
+| `gen_base2.png`, `gen_base3.png` | Генератор: ур.2 — больше катушек, второй вентилятор; ур.3 — две катушки, антенна, молния ярче |
+
+Прирост характеристик по уровням: см. `LV` в начале `game.js` (урон, скорострельность, дальность, замедление).

@@ -1,0 +1,6 @@
+# служебные и тяжёлые рабочие папки
+assets_hf/
+assets_old/
+Benzak.html
+.DS_Store
+.claude/
