@@ -15,4 +15,8 @@ b $R2/17.jpg fl_base; b $R2/10.jpg fl_base2; b $R2/09.jpg fl_base3
 b $R2/06.jpg sp_base2; b $R2/05.jpg sp_base3
 b $R2/15.jpg gen_base; b $R2/02.jpg gen_base2; b $R2/01.jpg gen_base3
 b $R1/shield.jpg shield 307 230; b $R1/sniper.jpg sniper 288 216
+R3=assets_hf/raw3
+b $R3/tes_base.jpg tes_base; h $R3/tes_head.jpg tes_head; b $R3/mor_base.jpg mor_base; h $R3/mor_head.jpg mor_head
+h $R3/mg3a.jpg mg_head3a; h $R3/mg3b.jpg mg_head3b; h $R3/fl3a.jpg fl_head3a; h $R3/fl3b.jpg fl_head3b; h $R3/sp3a.jpg sp_head3a; h $R3/sp3b.jpg sp_head3b
+b $R3/medic.jpg medic 288 216; b $R3/drone.png drone 192 192
 echo done
