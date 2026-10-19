@@ -68,10 +68,20 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 .chip img{height:22px;max-width:34px;object-fit:contain}
 .chip b{color:#ffcf6a;font-size:13px}
 #sheet button small{display:block;font-weight:normal;font-size:11px;color:#f0d9b0;opacity:.9;line-height:1.2;margin-top:2px}
+
+/* ---- звёзды, достижения ---- */
+.stars{font-size:30px;color:#ffcf6a;letter-spacing:4px;text-shadow:0 2px 0 #5a3a08,0 0 12px #ff9a2a88}
+.stars-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px}
+.stars-row b{color:#ffcf6a;letter-spacing:1px}
+#toast{position:absolute;top:56px;left:50%;transform:translate(-50%,-30px);z-index:20;background:linear-gradient(#5a3a16,#3a230d);border:2px solid #ffb347;border-radius:12px;padding:8px 16px;color:#ffe9b8;font-size:15px;opacity:0;pointer-events:none;box-shadow:0 6px 16px #000b;white-space:nowrap}
+#toast b{color:#ffcf6a}
+#toast.show{animation:tst 3.4s ease forwards}
+@keyframes tst{0%{opacity:0;transform:translate(-50%,-30px)}10%{opacity:1;transform:translate(-50%,0)}85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-20px)}}
 </style>
 </head>
 <body>
 <div id="app">
+  <div id="toast"></div>
   <div id="top"><span title="Лом"><svg class="ic" viewBox="0 0 24 24"><path fill="#d9b25a" stroke="#3a2608" stroke-width="1.2" d="M12 2l1.6 2.6 3-.8.8 3 3 .8-.8 3L22 12l-2.4 1.6.8 3-3 .8-.8 3-3-.8L12 22l-1.6-2.6-3 .8-.8-3-3-.8.8-3L2 12l2.6-1.6-.8-3 3-.8.8-3 3 .8z"/><circle cx="12" cy="12" r="3.6" fill="#3a2a14" stroke="#e8cc84" stroke-width="1"/></svg><b id="hScrap">100</b></span><span title="Топливо"><svg class="ic" viewBox="0 0 24 24"><path fill="#c8402a" stroke="#3a0e06" stroke-width="1.2" d="M6 5h9l3 3v13H6z"/><path fill="#7a2416" d="M6 11h12v3H6z"/><rect x="8" y="2" width="5" height="3.2" rx=".8" fill="#e8cc84" stroke="#3a2608" stroke-width="1"/><circle cx="12" cy="17.2" r="2.2" fill="#f0b050"/></svg><b id="hFuel">10</b><i>/10</i></span><span title="Волна"><svg class="ic" viewBox="0 0 24 24"><path fill="#e6dcc4" stroke="#2a2418" stroke-width="1.2" d="M12 2.5c-4.6 0-8 3.2-8 7.4 0 2.6 1.3 4.4 3 5.5V19h10v-3.6c1.7-1.1 3-2.9 3-5.5 0-4.2-3.4-7.4-8-7.4z"/><circle cx="8.8" cy="11" r="2.2" fill="#2a1a12"/><circle cx="15.2" cy="11" r="2.2" fill="#2a1a12"/><path fill="#2a1a12" d="M12 13l1.2 2.4h-2.4z"/></svg><b id="hWave">0</b><i>/<em id="hWaveMax">12</em></i></span></div>
   <div id="cw"><canvas id="cv"></canvas><div id="sheet"></div></div>
   <div id="abil"><div id="abbtn"><button class="ab" data-a="air" title="Воздушный удар"><svg viewBox="0 0 24 24"><path fill="#e8cc84" stroke="#3a2608" stroke-width="1.2" d="M12 2l3 7h-2v6h-2V9H9z"/><path fill="#c8402a" stroke="#3a0e06" stroke-width="1.2" d="M9 15h6l1 5H8z"/><circle cx="12" cy="21.5" r="1.6" fill="#ffd070"/></svg><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="rep" title="Ремонт всех башен"><svg viewBox="0 0 24 24"><path fill="#cfd6dc" stroke="#222a30" stroke-width="1.2" d="M15.5 3a5 5 0 00-4.6 6.9L3 17.8 6.2 21l7.9-7.9A5 5 0 0021 8.5l-3 3-3-.9-.9-3 3-3A5 5 0 0015.5 3z"/></svg><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="emp" title="ЭМИ: оглушает врагов"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#7fd0ff" stroke-width="1.6" stroke-dasharray="3 2"/><path fill="#fff6a0" stroke="#3a3208" stroke-width="1" d="M13 2L5 13h5l-1 9 9-12h-5z"/></svg><span class="cd"></span><span class="t"></span></button></div><div id="nextw"></div></div>
@@ -84,8 +94,11 @@ button:not(:disabled):hover{filter:brightness(1.1)}
     <button id="mNew" class="alt" style="display:none">Начать сначала</button>
     <button id="mBook" class="alt">Книга комбо</button>
     <button id="mSet" class="alt">Настройки</button>
+    <div id="mStars" class="sub stars-row"></div>
+    <button id="mAch" class="alt">Достижения</button>
     <div id="mBest" class="sub"></div>
   </div>
+  <div class="scr" id="sAch"><h2>Достижения</h2><div id="achList" style="display:grid;gap:8px;width:100%;max-width:400px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sBook"><h2>Книга комбо</h2><div id="cards"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sSet"><h2>Настройки</h2><button id="tSound">Звук: вкл</button><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sEnd"><h2 id="eTitle"></h2><div id="eInfo"></div><button id="eNext" style="display:none">Следующая карта</button><button id="eAgain" class="alt">Ещё раз</button><button id="eMenu" class="alt">В меню</button></div>

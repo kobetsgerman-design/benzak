@@ -22,27 +22,33 @@ const MAPS=[
    SLOTS:[[1,1],[1,2],[3,2],[3,3],[1,4],[2,4],[3,4],[2,6],[3,6],[4,6],[1,8],[2,8],[3,8],[5,2],[5,5],[1,0]],
    hp:1.2,cnt:1.15,start:80,bonus:15,dark:[.16,.38],warm:0xeaf0ff,vig:.6,
    amb:{n:46,a:.2,tint:0xb8d0ff,spd:.9,dir:'y',w:3,h:64}}];
-let MI=0,MAP=MAPS[0],WP=MAP.WP,SLOTS=MAP.SLOTS,PTS=[],SEG=[],TOT=0,NB=[],EXIT=[0,9];
+let MI=0,MAP=MAPS[0],WP=MAP.WP,SLOTS=MAP.SLOTS,PTS=[],SEG=[],TOT=0,NB=[],EXIT=[0,9],FLEN=1,FA=0;
 const TT={
   mg:{n:'Пулемёт',cost:30,range:2.5,up:[25,45]},
   fl:{n:'Огнемёт',cost:50,range:2,up:[40,70]},
   sp:{n:'Шипомёт',cost:40,range:2,up:[35,60]},
-  gen:{n:'Генератор',cost:35,range:0,up:[30,50]}};
-const TKEYS=['mg','fl','sp','gen'];
+  gen:{n:'Генератор',cost:35,range:0,up:[30,50]},
+  tes:{n:'Тесла',cost:60,range:2.2,up:[50,80]},
+  mor:{n:'Миномёт',cost:70,range:3.6,up:[55,90]}};
+const TKEYS=['mg','fl','sp','gen','tes','mor'];
 /* уровни башен 1..3: значения по индексу уровня; у генератора усиливается бонус комбо */
 const MAXLV=3;
 const LV={
   mg:{dmg:[8,12,18],rate:[2,2.5,3],range:[2.5,2.8,3.1]},
   fl:{dmg:[20,28,38],rate:[.7,.8,.9],range:[2,2.2,2.4],r:[1,1.15,1.3]},
   sp:{dmg:[3,5,8],slow:[.4,.5,.6],range:[2,2.2,2.4]},
-  gen:{}};
+  gen:{},
+  tes:{dmg:[14,20,28],rate:[1,1.1,1.2],range:[2.2,2.4,2.6],jmp:[2,2,3]},
+  mor:{dmg:[40,60,85],rate:[.35,.4,.45],range:[3.6,4,4.4],r:[.9,1,1.1]}};
 const lvOf=t=>t.lv||1;
 /* 3-й уровень — выбор пути A или B */
 const BR={
   mg:{a:{n:'Очередь',e:'скорострельность ×1,5'},b:{n:'Бронебой',e:'урон ×1,6, пробивает броню щитовика'}},
   fl:{a:{n:'Напалм',e:'поджигает цель, радиус +25%'},b:{n:'Дальний огонь',e:'дальность +0,6, урон +25%'}},
   sp:{a:{n:'Ледяные',e:'замедление +20%, каждое 4-е попадание замораживает'},b:{n:'Разрывные',e:'урон ×2,2 и взрыв вокруг цели'}},
-  gen:{a:{n:'Перегруз',e:'бонус комбо сильнее на 60%'},b:{n:'Ремонтник',e:'чинит соседние башни, 2 ед/с'}}};
+  gen:{a:{n:'Перегруз',e:'бонус комбо сильнее на 60%'},b:{n:'Ремонтник',e:'чинит соседние башни, 2 ед/с'}},
+  tes:{a:{n:'Дуга',e:'молния прыгает ещё на 2 цели'},b:{n:'Шок',e:'каждый удар оглушает на 0,8 с'}},
+  mor:{a:{n:'Кассета',e:'3 снаряда разлетаются вокруг цели'},b:{n:'Фугас',e:'радиус +40%, урон +30%'}}};
 const genLv=t=>lvOf(t)+(t.br==='a'?.6:0);
 /* активные способности: перезарядка идёт только во время волны */
 const AB={air:{n:'Воздушный удар',cd:45,e:'удар по выбранной точке'},rep:{n:'Ремонт',cd:60,e:'чинит все башни'},emp:{n:'ЭМИ',cd:70,e:'оглушает всех врагов'}};
@@ -56,6 +62,8 @@ function statLine(t){
   if(t.type==='mg')return 'Урон '+f(S.dmg,'')+' · скорострельность '+f(S.rate,'/с')+' · дальность '+f(S.range,'');
   if(t.type==='fl')return 'Урон '+f(S.dmg.map((d,i)=>Math.round(d*S.rate[i])),'/с')+' · радиус '+f(S.r,'')+' · дальность '+f(S.range,'');
   if(t.type==='sp')return 'Урон '+f(S.dmg,'')+' · замедление '+(n?Math.round(S.slow[lv-1]*100)+'% → '+Math.round(S.slow[lv]*100)+'%':Math.round(S.slow[lv-1]*100)+'%')+' · дальность '+f(S.range,'');
+  if(t.type==='tes')return 'Урон '+f(S.dmg,'')+' · дальность '+f(S.range,'')+' · прыжков '+(S.jmp[lv-1]+(t.br==='a'?2:0));
+  if(t.type==='mor')return 'Урон '+f(S.dmg,'')+' · радиус '+f(S.r,'')+' · дальность '+f(S.range,'');
   return 'Усиление комбо соседей: +'+25*(lv+1)+'%'+(n?' → +'+25*(lv+2)+'%':'');
 }
 const EN={
@@ -63,14 +71,16 @@ const EN={
   biker:{hp:25,sp:2.2,leak:1,rew:3,reach:0},
   armor:{hp:120,sp:.8,leak:2,rew:10,reach:1,dps:15},
   shield:{hp:100,sp:.9,leak:2,rew:8,reach:0,arm:.35},       // щитовик: пулемёт и шипы бьют вдвое слабее, огонь — полностью
-  sniper:{hp:60,sp:1.0,leak:1,rew:7,reach:2.0,dps:6},     // штурмовик: останавливается и стреляет по башням издалека
+  sniper:{hp:60,sp:1.0,leak:1,rew:7,reach:2.0,dps:6},
+  drone:{hp:45,sp:1.6,leak:1,rew:5,reach:0,fly:true},       // дрон летит напрямик; огнемёт, шипы и миномёт его не достают
+  medic:{hp:80,sp:.85,leak:1,rew:9,reach:0,heal:6},         // лекарь чинит врагов вокруг, пока не оглушён     // штурмовик: останавливается и стреляет по башням издалека
   boss:{hp:900,sp:.5,leak:10,rew:100,reach:2,dps:28}};
 /* 12 волн на каждой карте; здоровье растёт с волной, плюс множитель карты (MAP.hp/MAP.cnt) */
 const WAVES=[
-  {raider:8},{raider:10},{raider:8,biker:6},{raider:10,armor:2},{raider:8,biker:8,armor:2,shield:1},
-  {raider:12,armor:4,shield:2},{biker:10,armor:4,sniper:1},{raider:12,biker:8,armor:5,shield:2,sniper:1},
-  {raider:14,biker:8,armor:6,shield:3,sniper:2},{armor:7,shield:4,sniper:3,biker:10},
-  {raider:16,biker:12,armor:7,shield:4,sniper:3},{boss:1,raider:10,armor:6,shield:4,sniper:3}];
+  {raider:8},{raider:10,biker:4},{raider:8,biker:6,armor:2},{raider:10,armor:2,drone:4},{raider:8,biker:8,armor:2,shield:1},
+  {raider:12,armor:4,shield:2,medic:1},{biker:10,armor:4,sniper:1,drone:6},{raider:12,biker:8,armor:5,shield:2,sniper:1,medic:2},
+  {raider:14,biker:8,armor:6,shield:3,sniper:2,drone:6},{armor:7,shield:4,sniper:3,biker:10,medic:3},
+  {raider:16,biker:12,armor:7,shield:4,sniper:3,drone:8,medic:3},{boss:1,raider:10,armor:6,shield:4,sniper:3,drone:6,medic:3}];
 const NWAVES=WAVES.length;
 const CB=[
   {k:'fl+mg',n:'Зажигательные патроны',e:'Попадания пулемёта поджигают цель: 4 урона в секунду в течение 3 секунд',q:'Искра в гильзе — и пустошь горит ярче.'},
@@ -79,13 +89,42 @@ const CB=[
   {k:'fl+sp',n:'Горящий заслон',e:'Враги в зоне огня получают на 20% больше урона в течение 3 секунд',q:'Кто прошёл через огонь, тот уже не вернётся прежним.'},
   {k:'fl+gen',n:'Детонация',e:'Радиус урона огнемёта по области +50%',q:'Здесь всё горит. Даже воздух.'},
   {k:'gen+sp',n:'Электрозабор',e:'Радиус замедления +50%, замедление растёт с 40% до 55%',q:'Проволока поёт, а гости пляшут.'}];
+CB.push(
+  {k:'gen+tes',n:'Перегрузка сети',e:'Цепная молния Теслы прыгает на одну цель дальше',q:'Искра бежит по проводам быстрее мысли.'},
+  {k:'sp+tes',n:'Мокрый асфальт',e:'По замедленным врагам молния бьёт вдвое сильнее',q:'Колючая проволока — отличный проводник.'},
+  {k:'fl+mor',n:'Зажигательные снаряды',e:'Снаряды миномёта поджигают врагов',q:'Что не взорвалось, то горит.'},
+  {k:'gen+mor',n:'Усиленный заряд',e:'Радиус взрыва миномёта +30%',q:'Больше пороха — больше радости.'});
 const CBMAP={};CB.forEach(c=>CBMAP[c.k]=c);
-const FLAG={'mg>fl':'burn','mg>sp':'punct','mg>gen':'rate','fl>sp':'vuln','fl>gen':'det','sp>gen':'elec'};
+const FLAG={'mg>fl':'burn','mg>sp':'punct','mg>gen':'rate','fl>sp':'vuln','fl>gen':'det','sp>gen':'elec','tes>gen':'chain','tes>sp':'wet','mor>fl':'napalm','mor>gen':'big'};
 
 /* ---------- сохранение ---------- */
-let save={best:0,combos:[],sound:true,level:0};
+let save={best:0,combos:[],sound:true,level:0,stars:{},ach:[],kills:0};
 try{const s=JSON.parse(localStorage.getItem('benzak')||'null');if(s)save=Object.assign(save,s);}catch(e){}
 function persist(){try{localStorage.setItem('benzak',JSON.stringify(save));}catch(e){}}
+
+/* ---------- достижения ---------- */
+const ACH=[
+  {id:'lv3',n:'Мастер на все руки',d:'Улучшить башню до 3-го уровня'},
+  {id:'combo3',n:'Комбинатор',d:'Собрать 3 разных комбо за одну партию'},
+  {id:'allcombo',n:'Книга закрыта',d:'Открыть все комбо в Книге комбо'},
+  {id:'alltypes',n:'Арсенал',d:'Построить все типы башен за одну партию'},
+  {id:'air3',n:'Ковровая бомбардировка',d:'Убить воздушным ударом 3 врагов сразу'},
+  {id:'boss',n:'Король дороги',d:'Победить босса'},
+  {id:'flawless',n:'Без единой капли',d:'Пройти карту, не потеряв топлива'},
+  {id:'campaign',n:'Бензак спасён',d:'Пройти все три карты'},
+  {id:'kills100',n:'Охотник',d:'Уничтожить 100 врагов'},
+  {id:'kills1000',n:'Истребитель',d:'Уничтожить 1000 врагов'},
+  {id:'rich',n:'Барон лома',d:'Накопить 500 лома'}];
+function ach(id){
+  if(save.ach.includes(id))return;
+  const a=ACH.find(x=>x.id===id);if(!a)return;
+  save.ach.push(id);persist();
+  const t=document.getElementById('toast');
+  if(t){t.innerHTML='<b>Достижение!</b> '+a.n;t.classList.remove('show');void t.offsetWidth;t.classList.add('show');}
+  try{sfx('combo');}catch(e){}
+}
+const starsOf=f=>f>=10?3:f>=7?2:1;                 // звёзды за карту: 1 — победа, 2 — топлива ≥7, 3 — без потерь
+const starStr=n=>'★'.repeat(n)+'☆'.repeat(3-n);
 
 /* ---------- путь и соседи ---------- */
 function setMap(i){            // переключает путь, слоты, соседей и выход на карту i
@@ -96,6 +135,7 @@ function setMap(i){            // переключает путь, слоты, �
     SEG.push({x:PTS[k][0],y:PTS[k][1],dx:dx/len,dy:dy/len,len,s:TOT});TOT+=len;
   }
   EXIT=WP[WP.length-1];
+  FLEN=Math.hypot(EXIT[0]+.5-PTS[0][0],EXIT[1]+.5-PTS[0][1]);FA=Math.atan2(EXIT[1]+.5-PTS[0][1],EXIT[0]+.5-PTS[0][0]);   // прямая для летающих
   NB=SLOTS.map((s,a)=>{const r=[];SLOTS.forEach((o,b)=>{if(b!==a&&Math.abs(o[0]-s[0])+Math.abs(o[1]-s[1])===1)r.push(b);});return r;});
 }
 setMap(0);
@@ -154,7 +194,7 @@ function newGame(level){
   if(level!=null&&level!==MI)setMap(level);
   try{resetScene();}catch(e){}
   G={scrap:MAP.start,fuel:10,wave:0,running:false,over:false,overT:0,speed:1,slots:SLOTS.map(()=>null),
-     enemies:[],parts:[],floats:[],tracers:[],rings:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,map:MI,dq:[],cd:{air:0,rep:0,emp:0},strikes:[],aim:null};
+     enemies:[],parts:[],floats:[],tracers:[],rings:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,map:MI,dq:[],cd:{air:0,rep:0,emp:0},strikes:[],shells:[],aim:null};
   G.floats.push({x:3,y:4.6,text:'Карта '+(MI+1)+' · '+MAP.n,t:3,c:'#ffd24a'});
   try{applyMapScene();}catch(e){}
   $('bSpeed').textContent='×1';$('hWaveMax').textContent=NWAVES;closeSheet();updateWaveBtn();
@@ -185,8 +225,8 @@ function announce(born){
   for(const l of born){
     const c=CBMAP[l.k],[x1,y1]=SLOTS[l.i],[x2,y2]=SLOTS[l.j];
     G.floats.push({x:(x1+x2)/2+.5,y:(y1+y2)/2+.2,text:c.n,t:2.2,c:'#ffd24a'});
-    if(!G.found.includes(l.k))G.found.push(l.k);
-    if(!save.combos.includes(l.k)){save.combos.push(l.k);persist();sfx('combo');}
+    if(!G.found.includes(l.k)){G.found.push(l.k);if(G.found.length>=3)ach('combo3');}
+    if(!save.combos.includes(l.k)){save.combos.push(l.k);persist();sfx('combo');if(save.combos.length>=CB.length)ach('allcombo');}
     else sfx('buy');
   }
 }
@@ -195,6 +235,7 @@ function announce(born){
 function build(i,type){
   const d=TT[type];if(G.over||G.scrap<d.cost)return;
   const s=G.slots[i];if(s&&!s.rubble)return;
+  (G.types=G.types||new Set()).add(type);if(G.types.size>=TKEYS.length)ach('alltypes');
   G.scrap-=d.cost;G.slots[i]={type,hp:100,cd:0,shots:0,aim:0,f:{},lv:1,inv:d.cost};
   announce(recompute());sfx('buy');closeSheet();
 }
@@ -209,6 +250,7 @@ function upgrade(i,br){
   G.scrap-=c;t.lv=lvOf(t)+1;t.inv=(t.inv||TT[t.type].cost)+c;t.hp=100;t.upAt=G.t;
   const [col,row]=SLOTS[i];
   G.floats.push({x:col+.5,y:row+.2,text:t.br?BR[t.type][t.br].n:'Уровень '+t.lv,t:1.8,c:'#7fe36a'});
+  if(t.lv===3)ach('lv3');
   announce(recompute());sfx('combo');
 }
 function useAbility(k){
@@ -246,6 +288,7 @@ function startWave(){
 }
 function endWave(){
   G.running=false;G.scrap+=MAP.bonus;
+  if(G.scrap>=500)ach('rich');if(save.kills>=100)ach('kills100');if(save.kills>=1000)ach('kills1000');persist();
   if(G.wave>save.best){save.best=G.wave;persist();}
   if(G.wave>=NWAVES){finish(true);return;}
   updateWaveBtn();
@@ -265,15 +308,15 @@ function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/г
   if(e.vuln>0)d*=1.2;
   e.hp-=d;e.flash=.08;
   if(e.hp<=0){
-    e.dead=true;G.scrap+=EN[e.type].rew;
+    e.dead=true;G.scrap+=EN[e.type].rew;save.kills++;if(e.type==='boss')ach('boss');
     G.floats.push({x:e.x,y:e.y-.15,text:'+'+EN[e.type].rew,t:.85,c:'#ffd24a',s:30});
     boom(e.x,e.y,e.type==='boss'?3:.6);sfx(e.type==='boss'?'boom':'clang');
     if(e.type==='boss')G.shake=.6;
   }
 }
 function makeEnemy(type,d){
-  const E=EN[type],hp=Math.round(E.hp*MAP.hp*(1+.05*(G.wave-1))),p=pathPos(d);
-  return {type,d,x:p.x,y:p.y,a:d>0?p.a:Math.PI/2,hp,max:hp,slowT:0,slowAmt:0,burn:0,stun:0,vuln:0,flash:0,dead:false,atk:false,ph:Math.random()*6};
+  const E=EN[type],hp=Math.round(E.hp*MAP.hp*(1+.05*(G.wave-1))),p=E.fly?{x:PTS[0][0],y:PTS[0][1],a:FA}:pathPos(d);
+  return {type,d,fly:!!E.fly,x:p.x,y:p.y,a:(d>0||E.fly)?p.a:Math.PI/2,hp,max:hp,slowT:0,slowAmt:0,burn:0,stun:0,vuln:0,flash:0,dead:false,atk:false,ph:Math.random()*6};
 }
 function step(dt){
   G.t+=dt;
@@ -289,12 +332,22 @@ function step(dt){
         G.spawnT=type==='boss'?1.5:(type==='biker'?.55:.85);
       }
     }
+    // снаряды миномётов
+    for(const sh of G.shells){
+      sh.t-=dt;
+      if(sh.t<=0&&!sh.done){
+        sh.done=true;boom(sh.x,sh.y,.8+sh.r);G.shake=Math.max(G.shake,.12);sfx('boom');
+        for(const e of G.enemies)if(!e.dead&&!e.fly&&Math.hypot(e.x-sh.x,e.y-sh.y)<=sh.r){hurt(e,sh.dmg,'mor');if(sh.nap)e.burn=Math.max(e.burn,4);}
+      }
+    }
+    G.shells=G.shells.filter(sh=>!sh.done);
     // воздушные удары
     for(const st of G.strikes){
       st.t-=dt;
       if(st.t<=0&&!st.done){
         st.done=true;boom(st.x,st.y,2.4);G.shake=.5;sfx('boom');
-        for(const e of G.enemies)if(!e.dead&&Math.hypot(e.x-st.x,e.y-st.y)<=1.25){hurt(e,170,'air');e.burn=Math.max(e.burn,3);}
+        let kk=0;for(const e of G.enemies)if(!e.dead&&Math.hypot(e.x-st.x,e.y-st.y)<=1.25){hurt(e,170,'air');e.burn=Math.max(e.burn,3);if(e.dead)kk++;}
+        if(kk>=3)ach('air3');
       }
     }
     G.strikes=G.strikes.filter(st=>!st.done);
@@ -314,6 +367,10 @@ function step(dt){
         if(!e.p2&&f<.33){e.p2=1;G.floats.push({x:e.x,y:Math.max(1,e.y-.5),text:'Ярость!',t:2.2,c:'#ff5a3a'});G.shake=.6;sfx('boom');}
       }
       if(e.stun>0)continue;
+      if(E.heal){                                // лекарь чинит врагов вокруг
+        for(const o of G.enemies){if(o===e||o.dead||o.hp>=o.max)continue;
+          if(Math.hypot(o.x-e.x,o.y-e.y)<=1.3){o.hp=Math.min(o.max,o.hp+E.heal*dt);if(Math.random()<dt*3)G.parts.push({x:o.x,y:o.y-.1,vx:0,vy:-.6,life:.6,max:.6,c:'#7fe36a',r:.03});}}
+      }
       if(E.reach){
         let tg=-1,bd=0;
         SLOTS.forEach((s,i)=>{const t=G.slots[i];if(!t||t.rubble)return;
@@ -329,13 +386,14 @@ function step(dt){
       }
       const sp=E.sp*(e.slowT>0?1-e.slowAmt:1)*(e.p2?1.6:1);
       e.d+=sp*dt;
-      if(e.d>=TOT){
+      if(e.d>=(EN[e.type].fly?FLEN:TOT)){
         e.dead=true;e.leaked=true;G.fuel-=E.leak;sfx('leak');G.shake=.3;
         G.floats.push({x:EXIT[0]+.5,y:EXIT[1],text:'-'+E.leak,t:1.2,c:'#ff5a3a'});
         if(G.fuel<=0){G.fuel=0;finish(false);}
         continue;
       }
-      const p=pathPos(e.d);e.x=p.x;e.y=p.y;e.a=p.a;
+      if(E.fly){const k=e.d/FLEN;e.x=PTS[0][0]+(EXIT[0]+.5-PTS[0][0])*k;e.y=PTS[0][1]+(EXIT[1]+.5-PTS[0][1])*k;e.a=FA;e.fly=true;}
+      else{const p=pathPos(e.d);e.x=p.x;e.y=p.y;e.a=p.a;}
     }
     // башни
     for(let i=0;i<SLOTS.length;i++){
@@ -351,6 +409,7 @@ function step(dt){
       const cx=SLOTS[i][0]+.5,cy=SLOTS[i][1]+.5,R=rangeOf(t),S=LV[t.type],li=lvOf(t)-1;
       let best=null;
       for(const e of G.enemies){if(e.dead)continue;
+        if(e.fly&&(t.type==='fl'||t.type==='sp'||t.type==='mor'))continue;     // огонь, шипы и мины по воздуху не бьют
         if(Math.hypot(e.x-cx,e.y-cy)<=R&&(!best||e.d>best.d))best=e;}
       if(!best)continue;
       t.aim=Math.atan2(best.y-cy,best.x-cx);t.rec=.14;
@@ -383,6 +442,23 @@ function step(dt){
         if(t.br==='a'&&((t.shots=(t.shots||0)+1)%4===0))best.stun=Math.max(best.stun,1);
         if(t.br==='b'){for(const o of G.enemies)if(o!==best&&!o.dead&&Math.hypot(o.x-best.x,o.y-best.y)<=.6)hurt(o,sd*.5,'sp');G.rings.push({x:best.x,y:best.y,t:.3,max:.3,s:.2});}
         t.cd=1;G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.1,c:t.f.elec?'#7fd6ff':'#c9c9c9'});sfx('sp');
+      }else if(t.type==='tes'){
+        const jm=S.jmp[li]+(t.br==='a'?2:0)+(t.f.chain?1:0),hit=new Set([best]);
+        let cur=best,from={x:cx,y:cy},d=S.dmg[li];
+        for(let j=0;j<=jm&&cur;j++){
+          hurt(cur,d*(t.f.wet&&cur.slowT>0?2:1),'tes');if(t.br==='b')cur.stun=Math.max(cur.stun,.8);
+          G.tracers.push({x1:from.x,y1:from.y,x2:cur.x,y2:cur.y,t:.14,c:'#9fe0ff',w:3,z:1});
+          from=cur;d*=.72;let nx=null,nd=1.15;
+          for(const o of G.enemies){if(o.dead||hit.has(o))continue;const dd=Math.hypot(o.x-cur.x,o.y-cur.y);if(dd<nd){nd=dd;nx=o;}}
+          if(nx)hit.add(nx);cur=nx;
+        }
+        t.cd=1/S.rate[li];sfx('sp');
+      }else if(t.type==='mor'){
+        const rr=S.r[li]*(t.br==='b'?1.4:1)*(t.f.big?1.3:1),n=t.br==='a'?3:1,dm=S.dmg[li]*(t.br==='b'?1.3:1)*(n>1?.6:1);
+        const sp0=EN[best.type].sp*(best.slowT>0?1-best.slowAmt:1);
+        const lead=best.fly?{x:best.x,y:best.y}:pathPos(Math.min(TOT,best.d+sp0*.9));          // стреляет с упреждением
+        for(let k=0;k<n;k++)G.shells.push({x0:cx,y0:cy,x:lead.x+(k?(Math.random()-.5)*1.2:0),y:lead.y+(k?(Math.random()-.5)*1.2:0),t:.9,max:.9,r:rr,dmg:dm,nap:!!t.f.napalm});
+        t.cd=1/S.rate[li];sfx('clang');
       }
     }
     G.enemies=G.enemies.filter(e=>!e.dead);
@@ -410,10 +486,12 @@ function finish(win){
 function showEnd(){
   const last=MI>=MAPS.length-1;
   if(G.win&&!last&&save.level<MI+1){save.level=MI+1;persist();}
-  if(G.win&&last){save.level=MAPS.length;persist();}
+  if(G.win&&last){save.level=MAPS.length;persist();ach('campaign');}
+  const st=G.win?starsOf(G.fuel):0;
+  if(G.win){save.stars[MI]=Math.max(save.stars[MI]||0,st);persist();if(st===3)ach('flawless');}
   $('eTitle').textContent=G.win?(last?'Кампания пройдена!':'Карта «'+MAP.n+'» пройдена'):'Заправка взорвана';
   const names=G.found.map(k=>CBMAP[k].n);
-  $('eInfo').innerHTML='Карта '+(MI+1)+' из '+MAPS.length+' · '+MAP.n+'<br>Достигнута волна: <b>'+G.wave+'</b> из '+NWAVES
+  $('eInfo').innerHTML='Карта '+(MI+1)+' из '+MAPS.length+' · '+MAP.n+(G.win?'<br><span class="stars">'+starStr(st)+'</span>':'')+'<br>Достигнута волна: <b>'+G.wave+'</b> из '+NWAVES
     +'<br>Комбо в этой партии: '+(names.length?names.join(', '):'нет')
     +(G.win&&!last?'<br><b>Дальше: '+MAPS[MI+1].n+'</b> (враги сильнее)':'');
   $('eNext').style.display=(G.win&&!last)?'':'none';
@@ -474,9 +552,17 @@ function show(id){
     $('mBest').textContent='Лучший результат: волна '+save.best+' · открыто карт: '+Math.min(MAPS.length,save.level+1)+' из '+MAPS.length;
     $('mPlay').textContent=save.level>0?'Продолжить: '+MAPS[lv].n:'Играть';
     $('mNew').style.display=save.level>0?'':'none';
+    $('mStars').innerHTML=MAPS.map((m,i)=>'<span>'+m.n+' <b>'+starStr(save.stars[i]||0)+'</b></span>').join('');
+    $('mAch').textContent='Достижения ('+save.ach.length+'/'+ACH.length+')';
   }
   if(id==='sBook')renderBook();
+  if(id==='sAch')renderAch();
   if(id==='sSet')$('tSound').textContent='Звук: '+(save.sound?'вкл':'выкл');
+}
+function renderAch(){
+  $('achList').innerHTML=ACH.map(a=>save.ach.includes(a.id)
+    ?'<div class="card"><b>★ '+a.n+'</b><br>'+a.d+'</div>'
+    :'<div class="card off"><b>'+a.n+'</b><br><i>'+a.d+'</i></div>').join('');
 }
 function renderBook(){
   $('cards').innerHTML=CB.map(c=>save.combos.includes(c.k)
@@ -530,6 +616,7 @@ $('bMenu').onclick=()=>{G.over=true;G.running=false;show('sMenu');};
 $('mPlay').onclick=()=>{newGame(Math.min(save.level,MAPS.length-1));show(null);ac();};
 $('mNew').onclick=()=>{save.level=0;persist();newGame(0);show(null);ac();};
 $('mBook').onclick=()=>show('sBook');
+$('mAch').onclick=()=>show('sAch');
 $('mSet').onclick=()=>show('sSet');
 $('tSound').onclick=()=>{save.sound=!save.sound;persist();show('sSet');if(save.sound)ac();};
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>show('sMenu'));
@@ -544,7 +631,8 @@ $('eMenu').onclick=()=>show('sMenu');
 const CELL=180,PX=256;               // клетка в мире (px) и в текстурах (px)
 const ART={                          // имя: [ширина, высота] в клетках
   map:[6,10],map_dunes:[6,10],map_city:[6,10],slot:[1,1],station:[1,1],rubble:[1,1],
-  raider:[1,.75],biker:[.8,.5],armor:[1.2,.9],shield:[1.2,.9],sniper:[1.05,.8],boss:[2,1],
+  raider:[1,.75],biker:[.8,.5],armor:[1.2,.9],shield:[1.2,.9],sniper:[1.05,.8],drone:[.75,.75],medic:[1.15,.85],boss:[2,1],
+  tes_base:[1,1],tes_head:[1,1],mor_base:[1,1],mor_head:[1,1],
   mg_base:[1,1],mg_head:[1,1],fl_base:[1,1],fl_head:[1,1],sp_base:[1,1],sp_head:[1,1],gen_base:[1,1]};
 const T={};
 let decalRT,decalSpr,stampS,mapSpr,app,world,floatLayer,L={},lightRT=null,lightSpr,darkG,vig,warm,fxG,selG,rubbleG;
@@ -793,7 +881,8 @@ const PROC={
 /* запасная процедурная графика для карт кампании и новых врагов */
 function mapProc(i){return(g,u)=>{const keep=MI;setMap(i);try{PROC.map(g,u);}finally{setMap(keep);}};}
 PROC.map_dunes=mapProc(1);PROC.map_city=mapProc(2);
-PROC.shield=PROC.armor;PROC.sniper=PROC.raider;
+PROC.shield=PROC.armor;PROC.sniper=PROC.raider;PROC.medic=PROC.armor;PROC.drone=PROC.biker;
+PROC.tes_base=PROC.sp_base;PROC.tes_head=PROC.sp_head;PROC.mor_base=PROC.mg_base;PROC.mor_head=PROC.mg_head;
 function procTex(n){
   const [wc,hc]=ART[n],cn=document.createElement('canvas');
   cn.width=Math.round(wc*PX);cn.height=Math.round(hc*PX);
@@ -849,7 +938,7 @@ async function loadArt(){
   }));
   // необязательный арт уровней: mg_base2, mg_head3 и т.д.; если файла нет — рисуются запасные значки
   const tryLv=[];
-  for(const k of TKEYS)for(const lv of [2,3])for(const part of(k==='gen'?['base']:['base','head'])){
+  for(const k of TKEYS)for(const lv of [2,3,'3a','3b'])for(const part of(k==='gen'?['base']:['base','head'])){
     const n=k+'_'+part+lv,inl=window.__ASSETS&&window.__ASSETS[n];
     if(!inl&&location.protocol==='file:')continue;
     tryLv.push(PIXI.Texture.fromURL(inl||('assets/'+n+'.png')).then(t=>{T[n]=t;real++;}).catch(()=>{}));
@@ -939,7 +1028,7 @@ function makeTowerObj(i,t){
   const [col,row]=SLOTS[i],c=new PIXI.Container(),key=t.rubble?'rubble':t.type;
   c.position.set((col+.5)*CELL,(row+.5)*CELL);
   const lv=t.rubble?0:lvOf(t),o={c,key,t,lv,br:t.br};
-  const lvTex=(part)=>(lv>1&&T[key+'_'+part+lv])||T[key+'_'+part];   // арт уровня, иначе базовый
+  const lvTex=(part)=>(lv===3&&t.br&&T[key+'_'+part+'3'+t.br])||(lv>1&&T[key+'_'+part+lv])||T[key+'_'+part];   // арт ветки → арт уровня → базовый
   if(t.rubble){
     c.addChild(spr(T.rubble,CELL,CELL));o.glow=spr(T.glow,CELL*.5,CELL*.5);o.glow.tint=0xff6a1a;o.glow.blendMode=ADD;c.addChild(o.glow);
   }else{
@@ -947,9 +1036,8 @@ function makeTowerObj(i,t){
     o.baseSpr=spr(lvTex('base'),CELL,CELL);o.bs=o.baseSpr.scale.x;c.addChild(o.baseSpr);
     if(T[key+'_head']){
       o.head=new PIXI.Container();
-      const hasLvHead=lv>1&&!!T[key+'_head'+lv];
       o.headSpr=spr(lvTex('head'),CELL,CELL);
-      if(lv>1&&!hasLvHead)o.headSpr.scale.set(o.headSpr.scale.x*(1+.07*(lv-1)));   // без арта: голова крупнее
+      if(lv>1&&lvTex('head')===T[key+'_head'])o.headSpr.scale.set(o.headSpr.scale.x*(1+.07*(lv-1)));   // без арта: голова крупнее
       o.head.addChild(o.headSpr);
       if(key==='mg'){o.flash=spr(T.glow,CELL*.55,CELL*.55);o.flash.tint=0xffd870;o.flash.blendMode=ADD;o.flash.x=.46*CELL;o.head.addChild(o.flash);}
       if(key==='fl'){o.pilot=spr(T.glow,CELL*.22,CELL*.22);o.pilot.tint=0xffa040;o.pilot.blendMode=ADD;o.pilot.x=.34*CELL;o.head.addChild(o.pilot);
@@ -1051,12 +1139,13 @@ function syncEnemies(){
     o.bodyC.rotation=e.a+Math.sin(G.t*9+e.ph)*.012;o.sh.rotation=e.a;
     o.bodyC.y=Math.sin(G.t*12+e.ph)*(e.type==='boss'?1.5:2.2);          // лёгкая тряска подвески
     if(o.lx===undefined){o.lx=e.x;o.ly=e.y;}
-    else if((e.x-o.lx)**2+(e.y-o.ly)**2>.0121){                       // колея за колёсами
+    else if(!e.fly&&(e.x-o.lx)**2+(e.y-o.ly)**2>.0121){                       // колея за колёсами
       const nx=-Math.sin(e.a),ny=Math.cos(e.a),off=e.type==='boss'?.28:e.type==='biker'?0:.14;
       if(off){stamp(T.glow,e.x+nx*off,e.y+ny*off,.07,0,.12);stamp(T.glow,e.x-nx*off,e.y-ny*off,.07,0,.12);}
       else stamp(T.glow,e.x,e.y,.06,0,.12);
       o.lx=e.x;o.ly=e.y;
     }
+    if(e.fly){o.bodyC.y=-.2*CELL+Math.sin(G.t*6+e.ph)*3;o.sh.y=.3*CELL;o.sh.alpha=.5;}
     o.fl.alpha=e.flash>0?.7:0;
     for(const t of o.trs)t.tilePosition.x=e.d*CELL*.9;                  // протектор бежит с реальной скоростью
     const hf=e.hp/e.max;
@@ -1123,8 +1212,21 @@ function syncFx(){
   }
   for(const t of G.tracers){
     const a=Math.min(1,t.t*12),col=parseInt(t.c.slice(1),16),w=(t.w||2);
+    if(t.z){                                           // зигзаг-молния Теслы
+      const dx=t.x2-t.x1,dy=t.y2-t.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,pts=[];
+      for(let q=0;q<=6;q++){const j=(q===0||q===6)?0:(Math.random()-.5)*.14;pts.push([(t.x1+dx*q/6+nx*j)*CELL,(t.y1+dy*q/6+ny*j)*CELL]);}
+      g.lineStyle(9,col,a*.35);pts.forEach((pt,q)=>q?g.lineTo(pt[0],pt[1]):g.moveTo(pt[0],pt[1]));
+      g.lineStyle(2.6,0xffffff,a);pts.forEach((pt,q)=>q?g.lineTo(pt[0],pt[1]):g.moveTo(pt[0],pt[1]));
+      continue;
+    }
     g.lineStyle(w*5,col,a*.45);g.moveTo(t.x1*CELL,t.y1*CELL);g.lineTo(t.x2*CELL,t.y2*CELL);
     g.lineStyle(w*1.4,0xffffff,a);g.moveTo(t.x1*CELL,t.y1*CELL);g.lineTo(t.x2*CELL,t.y2*CELL);
+  }
+  for(const sh of G.shells){                          // снаряд миномёта летит по дуге
+    const k=1-sh.t/sh.max,px=(sh.x0+(sh.x-sh.x0)*k)*CELL,py=(sh.y0+(sh.y-sh.y0)*k)*CELL,h=Math.sin(Math.PI*k)*.7*CELL;
+    g.lineStyle(3,0xff6a3a,.45);g.drawCircle(sh.x*CELL,sh.y*CELL,sh.r*CELL*(.5+.5*k));
+    g.lineStyle(0);g.beginFill(0,.28);g.drawEllipse(px,py,7,4);g.endFill();
+    g.beginFill(0x2a2623);g.drawCircle(px,py-h,7);g.endFill();g.beginFill(0xffb050,.9);g.drawCircle(px+1,py-h-1,3);g.endFill();
   }
   for(const st of G.strikes){                         // метка воздушного удара
     const f=Math.max(0,st.t/.9),cx0=st.x*CELL,cy0=st.y*CELL;
@@ -1242,7 +1344,8 @@ function syncFx(){
   }
   for(const r of G.rings){const f=r.t/r.max;lightAt(r.x,r.y,(1-f)*3+1.2,f*.95,0xffa040);}
   for(const w of WR)lightAt(w.x,w.y,1.1,.45*Math.max(0,1-(G.t-w.born)/w.max),0xff8030);   // тлеющие остовы светятся
-  for(const t of G.tracers)if(t.w){lightAt(t.x2,t.y2,2.2,.8*Math.min(1,t.t*10),0xffa050);}
+  for(const t of G.tracers)if(t.w&&!t.z){lightAt(t.x2,t.y2,2.2,.8*Math.min(1,t.t*10),0xffa050);}
+  for(const t of G.tracers)if(t.z)lightAt(t.x2,t.y2,1.4,.6*Math.min(1,t.t*8),0x9fe0ff);
   for(let i=lightN;i<lightPool.length;i++)lightPool[i].visible=false;
   app.renderer.render(lightC,{renderTexture:lightRT,clear:true});
 }
@@ -1263,7 +1366,7 @@ function frameTick(){
   getGlow=poolSprite(glowPool,L.fx,T.glow,ADD);
   getDust=poolSprite(dustPool,L.fx,T.smoke,ADD);
   newGame();show('sMenu');
-  window.__benzak={get G(){return G;},build,upgrade,useAbility,airStrike,BR,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
+  window.__benzak={get G(){return G;},EN,build,upgrade,useAbility,airStrike,BR,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
   const ld=document.getElementById('loading');if(ld)ld.remove();
 })();
 })();
