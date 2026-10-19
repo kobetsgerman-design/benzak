@@ -84,6 +84,41 @@ for p in 0..<(w*h) {
     if label[p] != keep && px[p*4+3] != 0 { px[p*4+3] = 0; px[p*4] = 0; px[p*4+1] = 0; px[p*4+2] = 0 }
     if px[p*4+3] != 0 { let x = p % w, y = p / w; x0 = min(x0, x); x1 = max(x1, x); y0 = min(y0, y); y1 = max(y1, y) }
 }
+// --- снятие светлой каёмки: внешние 2 px маски перекрашиваются цветом ближайшей «сердцевины», край делается мягким
+do {
+    var d = [UInt8](repeating: 0, count: w * h)       // 0 — фон, 1 — крайний пиксель, 2 — второй от края, 255 — сердцевина
+    for p in 0..<(w*h) where px[p*4+3] != 0 { d[p] = 255 }
+    func nb(_ p: Int, _ f: (Int) -> Bool) -> Bool {
+        let x = p % w, y = p / w
+        if x > 0 && f(p - 1) { return true }; if x < w - 1 && f(p + 1) { return true }
+        if y > 0 && f(p - w) { return true }; if y < h - 1 && f(p + w) { return true }
+        return false
+    }
+    for p in 0..<(w*h) where d[p] == 255 {
+        let x = p % w, y = p / w
+        if x == 0 || y == 0 || x == w - 1 || y == h - 1 || nb(p, { d[$0] == 0 }) { d[p] = 1 }
+    }
+    for p in 0..<(w*h) where d[p] == 255 { if nb(p, { d[$0] == 1 }) { d[p] = 2 } }
+    var rgb = px
+    for p in 0..<(w*h) where d[p] == 1 || d[p] == 2 {
+        let x = p % w, y = p / w
+        var r = 0, g = 0, b = 0, n = 0
+        for dy in -4...4 { for dx in -4...4 {
+            let nx = x + dx, ny = y + dy
+            if nx < 0 || ny < 0 || nx >= w || ny >= h { continue }
+            let q = ny * w + nx
+            if d[q] == 255 { r += Int(px[q*4]); g += Int(px[q*4+1]); b += Int(px[q*4+2]); n += 1 }
+        } }
+        if n > 0 {
+            rgb[p*4] = UInt8(r / n); rgb[p*4+1] = UInt8(g / n); rgb[p*4+2] = UInt8(b / n)
+        }
+        let al: Int = d[p] == 1 ? 120 : 225
+        rgb[p*4+3] = UInt8(al)
+        // premultiplied alpha
+        rgb[p*4] = UInt8(Int(rgb[p*4]) * al / 255); rgb[p*4+1] = UInt8(Int(rgb[p*4+1]) * al / 255); rgb[p*4+2] = UInt8(Int(rgb[p*4+2]) * al / 255)
+    }
+    px = rgb
+}
 let full = ctx.makeImage()!
 let cw = x1 - x0 + 1, ch = y1 - y0 + 1
 let crop = full.cropping(to: CGRect(x: x0, y: y0, width: cw, height: ch))!
