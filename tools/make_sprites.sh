@@ -19,4 +19,7 @@ R3=assets_hf/raw3
 b $R3/tes_base.jpg tes_base; h $R3/tes_head.jpg tes_head; b $R3/mor_base.jpg mor_base; h $R3/mor_head.jpg mor_head
 h $R3/mg3a.jpg mg_head3a; h $R3/mg3b.jpg mg_head3b; h $R3/fl3a.jpg fl_head3a; h $R3/fl3b.jpg fl_head3b; h $R3/sp3a.jpg sp_head3a; h $R3/sp3b.jpg sp_head3b
 b $R3/medic.jpg medic 288 216; b $R3/drone.png drone 192 192
+R4=assets_hf/raw4
+for n in tes_base2 tes_base3 mor_base2 mor_base3; do b $R4/$n.jpg $n; done
+for n in tes_head2 tes_head3a tes_head3b mor_head2 mor_head3a mor_head3b; do h $R4/$n.jpg $n; done
 echo done
