@@ -1296,28 +1296,32 @@ function makeTowerObj(i,t){
   if(t.rubble){
     c.addChild(spr(T.rubble,CELL,CELL));o.glow=spr(T.glow,CELL*.5,CELL*.5);o.glow.tint=0xff6a1a;o.glow.blendMode=ADD;c.addChild(o.glow);
   }else{
+    const cs0=spr(T.glow,CELL*1.34,CELL*1.34);cs0.tint=0;cs0.alpha=.4;cs0.position.set(.03*CELL,.05*CELL);c.addChild(cs0);   // мягкая тень «посадки» на плиту
     const sh=spr(lvTex('base'),CELL*1.02,CELL*1.02);sh.tint=0;sh.alpha=.4;sh.position.set(.055*CELL,.08*CELL);c.addChild(sh);   // тень-силуэт: свет сверху-слева
     o.hsh=null;
     o.baseSpr=spr(lvTex('base'),CELL,CELL);o.bs=o.baseSpr.scale.x;c.addChild(o.baseSpr);
     if(T[key+'_head']){
       o.head=new PIXI.Container();
-      o.headSpr=spr(lvTex('head'),CELL,CELL);
+      const HS={mg:1.4,fl:1.3}[key]||1;                                                                // тонкие головы пулемёта и огнемёта читаются плохо — увеличиваем
+      o.headSpr=spr(lvTex('head'),CELL,CELL);o.headSpr.scale.set(o.headSpr.scale.x*HS);
       if(lv>1&&lvTex('head')===T[key+'_head'])o.headSpr.scale.set(o.headSpr.scale.x*(1+.07*(lv-1)));   // без арта: голова крупнее
       o.head.addChild(o.headSpr);
-      o.hsh=spr(lvTex('head'),CELL,CELL);o.hsh.tint=0;o.hsh.alpha=.34;c.addChildAt(o.hsh,1);   // тень головы (поворачивается с ней)
-      if(key==='mg'){o.flash=spr(T.glow,CELL*.55,CELL*.55);o.flash.tint=0xffd870;o.flash.blendMode=ADD;o.flash.x=.46*CELL;o.head.addChild(o.flash);}
-      if(key==='fl'){o.pilot=spr(T.glow,CELL*.22,CELL*.22);o.pilot.tint=0xffa040;o.pilot.blendMode=ADD;o.pilot.x=.34*CELL;o.head.addChild(o.pilot);
-        o.cone=new PIXI.Sprite(T.cone);o.cone.anchor.set(0,.5);o.cone.tint=0xff7a1a;o.cone.blendMode=ADD;o.cone.x=.33*CELL;o.head.addChild(o.cone);
-        o.flash=spr(T.glow,CELL*.4,CELL*.4);o.flash.tint=0xffb040;o.flash.blendMode=ADD;o.flash.x=.36*CELL;o.head.addChild(o.flash);}
+      o.hsh=spr(lvTex('head'),CELL,CELL);o.hsh.scale.set(o.hsh.scale.x*HS);o.hsh.tint=0;o.hsh.alpha=.34;c.addChildAt(o.hsh,1);   // тень головы (поворачивается с ней)
+      if(key==='mg'){o.flash=spr(T.glow,CELL*.55,CELL*.55);o.flash.tint=0xffd870;o.flash.blendMode=ADD;o.flash.x=.46*CELL*HS;o.head.addChild(o.flash);}
+      if(key==='fl'){o.pilot=spr(T.glow,CELL*.22,CELL*.22);o.pilot.tint=0xffa040;o.pilot.blendMode=ADD;o.pilot.x=.34*CELL*HS;o.head.addChild(o.pilot);
+        o.cone=new PIXI.Sprite(T.cone);o.cone.anchor.set(0,.5);o.cone.tint=0xff7a1a;o.cone.blendMode=ADD;o.cone.x=.33*CELL*HS;o.head.addChild(o.cone);
+        o.flash=spr(T.glow,CELL*.4,CELL*.4);o.flash.tint=0xffb040;o.flash.blendMode=ADD;o.flash.x=.36*CELL*HS;o.head.addChild(o.flash);}
       c.addChild(o.head);
     }
+    if(key==='tes'){o.idle=spr(T.glow,CELL*1.0,CELL*1.0);o.idle.tint=0x7fd6ff;o.idle.blendMode=ADD;o.idle.alpha=.2;c.addChildAt(o.idle,o.head?c.getChildIndex(o.head):c.children.length);}
     if(key==='gen'){o.glow=spr(T.glow,CELL*1.4,CELL*1.4);o.glow.tint=0xffd24a;o.glow.blendMode=ADD;c.addChild(o.glow);}
     o.up=spr(T.glow,CELL*1.5,CELL*1.5);o.up.tint=0x7fe36a;o.up.blendMode=ADD;o.up.alpha=0;c.addChild(o.up);   // вспышка при улучшении
-    if(lv>1){                                                                                                // значки уровня (шевроны)
-      const pg=new PIXI.Graphics();
-      for(let k=0;k<lv-1;k++){const x=-.4*CELL+k*.11*CELL,y=-.4*CELL;
-        pg.lineStyle(5,0x2a1a08,1);pg.moveTo(x,y);pg.lineTo(x+.05*CELL,y-.05*CELL);pg.lineTo(x+.1*CELL,y);
-        pg.lineStyle(3,t.br==='b'?0x7fd6ff:0xffd24a,1);pg.moveTo(x,y);pg.lineTo(x+.05*CELL,y-.05*CELL);pg.lineTo(x+.1*CELL,y);}
+    if(lv>1){                                                                                                // значки уровня (шевроны на тёмной подложке)
+      const pg=new PIXI.Graphics(),bc=t.br==='b'?0x7fd6ff:0xffd24a;
+      pg.beginFill(0x120a05,.62);pg.drawRoundedRect(-.46*CELL,-.5*CELL,(lv-1)*.15*CELL+.09*CELL,.17*CELL,9);pg.endFill();
+      for(let k=0;k<lv-1;k++){const x=-.42*CELL+k*.15*CELL,y=-.36*CELL;
+        pg.lineStyle(8,0x2a1a08,1);pg.moveTo(x,y);pg.lineTo(x+.06*CELL,y-.06*CELL);pg.lineTo(x+.12*CELL,y);
+        pg.lineStyle(4.5,bc,1);pg.moveTo(x,y);pg.lineTo(x+.06*CELL,y-.06*CELL);pg.lineTo(x+.12*CELL,y);}
       c.addChild(pg);
     }
     o.bar=new PIXI.Container();
@@ -1337,6 +1341,7 @@ function syncTowers(){
     if(!o)o=TO[i]=makeTowerObj(i,t);
     o.t=t;
     if(t.rubble){o.glow.alpha=.3+.25*Math.sin(G.t*9+i);continue;}
+    if(o.idle)o.idle.alpha=.16+.1*Math.sin(G.t*6+i*2)+(t.rec>0?.3:0);
     if(o.up)o.up.alpha=t.upAt!=null?Math.max(0,1-(G.t-t.upAt)/.7)*.9:0;
     if(o.head){
       const rec=t.rec>0?Math.min(1,t.rec/.14):0;
