@@ -117,7 +117,7 @@ do {
         // premultiplied alpha
         rgb[p*4] = UInt8(Int(rgb[p*4]) * al / 255); rgb[p*4+1] = UInt8(Int(rgb[p*4+1]) * al / 255); rgb[p*4+2] = UInt8(Int(rgb[p*4+2]) * al / 255)
     }
-    px = rgb
+    for i in 0..<px.count { px[i] = rgb[i] }          // запись в исходный буфер (его держит ctx)
 }
 let full = ctx.makeImage()!
 let cw = x1 - x0 + 1, ch = y1 - y0 + 1
