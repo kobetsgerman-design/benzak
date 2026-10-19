@@ -78,6 +78,9 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 @keyframes hintp{50%{box-shadow:0 0 14px #ffb347aa,0 3px 10px #000a}}
 .cmb{color:#ffd24a!important;font-weight:bold}
 
+#perkList button,#metaList button{padding:10px 12px}
+#perkList button small{display:block;font-weight:normal;margin-top:2px}
+#metaList .card button{margin-top:6px;width:100%}
 /* ---- звёзды, достижения ---- */
 .stars{font-size:30px;color:#ffcf6a;letter-spacing:4px;text-shadow:0 2px 0 #5a3a08,0 0 12px #ff9a2a88}
 .stars-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px}
@@ -104,9 +107,12 @@ button:not(:disabled):hover{filter:brightness(1.1)}
     <button id="mBook" class="alt">Книга комбо</button>
     <button id="mSet" class="alt">Настройки</button>
     <div id="mStars" class="sub stars-row"></div>
+    <button id="mMeta" class="alt">Мастерская</button>
     <button id="mAch" class="alt">Достижения</button>
     <div id="mBest" class="sub"></div>
   </div>
+  <div class="scr" id="sMeta"><h2>Мастерская</h2><div id="metaTok" class="sub"></div><div id="metaList" style="display:grid;gap:8px;width:100%;max-width:400px"></div><button class="alt" data-back>Назад</button></div>
+  <div class="scr" id="sPerk"><h2>Выберите улучшение</h2><div class="sub">действует до конца этой карты</div><div id="perkList" style="display:grid;gap:10px;width:100%;max-width:400px"></div></div>
   <div class="scr" id="sAch"><h2>Достижения</h2><div id="achList" style="display:grid;gap:8px;width:100%;max-width:400px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sBook"><h2>Книга комбо</h2><div id="cards"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sSet"><h2>Настройки</h2><button id="tSound">Звук: вкл</button><button class="alt" data-back>Назад</button></div>
