@@ -19,7 +19,7 @@ const MAPS=[
   {id:'dunes',n:'Дюны',art:'map_dunes',
    WP:[[5,0],[5,2],[1,2],[1,4],[4,4],[4,6],[0,6],[0,8],[3,8],[3,9]],
    SLOTS:[[4,1],[2,1],[3,1],[2,3],[3,3],[4,3],[0,3],[1,5],[2,5],[3,5],[5,4],[1,7],[2,7],[3,7],[2,9],[4,8]],
-   hp:1.15,cnt:1.1,start:90,bonus:17,dark:[.05,.26],warm:0xfff4dc,vig:.4,dust:0xe6c98a,
+   hp:.92,cnt:.96,start:105,bonus:20,dark:[.05,.26],warm:0xfff4dc,vig:.4,dust:0xe6c98a,
    amb:{n:34,a:.2,tint:0xffe6b0,spd:12,dir:'x',w:70,h:6},grade:[.08,.1,1.04],
    decor:{set:'dunes',seed:7,dens:.72,items:[
      {i:1,w:3,sz:.62,k:'rock'},{i:2,w:3,sz:.46,k:'rock'},{i:3,w:3,sz:.34,k:'pebble'},
@@ -118,13 +118,13 @@ function persist(){try{localStorage.setItem('benzak',JSON.stringify(save));}catc
 const RUN={dmg:1,rate:1,range:1,cost:1,rew:1,cd:1,regen:0,bonus:0};
 function runCalc(){
   const m=save.meta||{},L=id=>m[id]||0,P=id=>(G&&G.perks||[]).filter(x=>x===id).length;
-  RUN.dmg=(1+.03*L('dmg'))*Math.pow(1.12,P('dmg'));
-  RUN.rate=(1+.03*L('rate'))*Math.pow(1.12,P('rate'));
-  RUN.range=Math.pow(1.1,P('range'));
-  RUN.cost=Math.max(.5,(1-.02*L('cost'))*Math.pow(.88,P('cost')));
-  RUN.rew=(1+.04*L('rew'))*Math.pow(1.25,P('rew'));
-  RUN.cd=Math.max(.3,(1-.04*L('cd'))*Math.pow(.75,P('cd')));
-  RUN.regen=1.5*P('regen');RUN.bonus=8*P('bonus');
+  RUN.dmg=(1+.02*L('dmg'))*Math.pow(1.10,P('dmg'));
+  RUN.rate=(1+.02*L('rate'))*Math.pow(1.10,P('rate'));
+  RUN.range=Math.pow(1.08,P('range'));
+  RUN.cost=Math.max(.5,(1-.015*L('cost'))*Math.pow(.9,P('cost')));
+  RUN.rew=(1+.03*L('rew'))*Math.pow(1.2,P('rew'));
+  RUN.cd=Math.max(.3,(1-.03*L('cd'))*Math.pow(.8,P('cd')));
+  RUN.regen=1.5*P('regen');RUN.bonus=6*P('bonus');
 }
 const costOf=k=>Math.round(TT[k].cost*RUN.cost),abCd=k=>AB[k].cd*RUN.cd;
 
@@ -320,7 +320,7 @@ let G=null,cs=40,offX=0,offY=0,dpr=1;
 function newGame(level){
   if(level!=null&&level!==MI)setMap(level);
   try{resetScene();}catch(e){}
-  G={perks:[],shield:0,scrap:MAP.start+12*((save.meta&&save.meta.start)||0),fuel:10,wave:0,running:false,over:false,overT:0,speed:1,slots:SLOTS.map(()=>null),
+  G={perks:[],shield:0,scrap:MAP.start+6*((save.meta&&save.meta.start)||0),fuel:10,wave:0,running:false,over:false,overT:0,speed:1,slots:SLOTS.map(()=>null),
      enemies:[],parts:[],floats:[],tracers:[],rings:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,slowT:0,alert:0,map:MI,dq:[],cd:{air:0,rep:0,emp:0},strikes:[],shells:[],aim:null};
   runCalc();
   G.floats.push({x:3,y:4.6,text:'Карта '+(MI+1)+' · '+MAP.n,t:3,c:'#ffd24a'});
@@ -731,23 +731,23 @@ function show(id){
 }
 /* ---------- забег: улучшения после волн 3, 6, 9 и постоянная прокачка в мастерской ---------- */
 const PERKS=[
-  {id:'scrap',n:'Запас лома',d:'+70 лома прямо сейчас'},
-  {id:'dmg',n:'Закалённая сталь',d:'урон башен +12%'},
-  {id:'rate',n:'Разгон',d:'скорострельность +12%'},
-  {id:'range',n:'Дальнобойные стволы',d:'дальность башен +10%'},
-  {id:'cost',n:'Оптовые закупки',d:'башни и улучшения дешевле на 12%'},
-  {id:'rew',n:'Мародёры',d:'+25% лома за каждого врага'},
-  {id:'cd',n:'Быстрая подготовка',d:'способности перезаряжаются на 25% быстрее'},
+  {id:'scrap',n:'Запас лома',d:'+50 лома прямо сейчас'},
+  {id:'dmg',n:'Закалённая сталь',d:'урон башен +10%'},
+  {id:'rate',n:'Разгон',d:'скорострельность +10%'},
+  {id:'range',n:'Дальнобойные стволы',d:'дальность башен +8%'},
+  {id:'cost',n:'Оптовые закупки',d:'башни и улучшения дешевле на 10%'},
+  {id:'rew',n:'Мародёры',d:'+20% лома за каждого врага'},
+  {id:'cd',n:'Быстрая подготовка',d:'способности перезаряжаются на 20% быстрее'},
   {id:'regen',n:'Мастерская на колёсах',d:'башни сами чинятся: +1,5 прочности в секунду'},
   {id:'shield',n:'Бронированная заправка',d:'следующие 2 прорыва не отнимают топливо'},
-  {id:'bonus',n:'Премия за волну',d:'+8 лома за каждую пройденную волну'}];
+  {id:'bonus',n:'Премия за волну',d:'+6 лома за каждую пройденную волну'}];
 const META=[
-  {id:'start',n:'Склад',d:'+12 лома на старте карты'},
-  {id:'dmg',n:'Закалка',d:'урон башен +3%'},
-  {id:'rate',n:'Смазка',d:'скорострельность +3%'},
-  {id:'rew',n:'Трофеи',d:'+4% лома за врагов'},
-  {id:'cd',n:'Ремкомплект',d:'способности перезаряжаются на 4% быстрее'},
-  {id:'cost',n:'Снабжение',d:'башни и улучшения дешевле на 2%'}];
+  {id:'start',n:'Склад',d:'+6 лома на старте карты'},
+  {id:'dmg',n:'Закалка',d:'урон башен +2%'},
+  {id:'rate',n:'Смазка',d:'скорострельность +2%'},
+  {id:'rew',n:'Трофеи',d:'+3% лома за врагов'},
+  {id:'cd',n:'Ремкомплект',d:'способности перезаряжаются на 3% быстрее'},
+  {id:'cost',n:'Снабжение',d:'башни и улучшения дешевле на 1,5%'}];
 const META_MAX=5,metaCost=lv=>10+10*lv;
 function openPerks(){
   closeSheet();const pool=PERKS.slice(),pick=[];
@@ -757,7 +757,7 @@ function openPerks(){
 }
 function pickPerk(id){
   if(!G)return;const p=PERKS.find(x=>x.id===id);if(!p)return;
-  G.perks.push(id);if(id==='scrap')G.scrap+=70;if(id==='shield')G.shield=(G.shield||0)+2;
+  G.perks.push(id);if(id==='scrap')G.scrap+=50;if(id==='shield')G.shield=(G.shield||0)+2;
   runCalc();sfx('combo');G.floats.push({x:3,y:4.6,text:p.n,t:2.2,c:'#ffd24a',s:44});show(null);
 }
 function renderMeta(){
@@ -1302,15 +1302,15 @@ function makeTowerObj(i,t){
     o.baseSpr=spr(lvTex('base'),CELL,CELL);o.bs=o.baseSpr.scale.x;c.addChild(o.baseSpr);
     if(T[key+'_head']){
       o.head=new PIXI.Container();
-      const HS={mg:1.4,fl:1.3}[key]||1;                                                                // тонкие головы пулемёта и огнемёта читаются плохо — увеличиваем
+      const HS=key==='mg'?(lv===1?1.3:1):key==='fl'?(lv===3&&t.br==='b'?1.45:1):1;   // новые головы компактные; маленькие по кадру — увеличены                                                                // тонкие головы пулемёта и огнемёта читаются плохо — увеличиваем
       o.headSpr=spr(lvTex('head'),CELL,CELL);o.headSpr.scale.set(o.headSpr.scale.x*HS);
       if(lv>1&&lvTex('head')===T[key+'_head'])o.headSpr.scale.set(o.headSpr.scale.x*(1+.07*(lv-1)));   // без арта: голова крупнее
       o.head.addChild(o.headSpr);
       o.hsh=spr(lvTex('head'),CELL,CELL);o.hsh.scale.set(o.hsh.scale.x*HS);o.hsh.tint=0;o.hsh.alpha=.34;c.addChildAt(o.hsh,1);   // тень головы (поворачивается с ней)
       if(key==='mg'){o.flash=spr(T.glow,CELL*.55,CELL*.55);o.flash.tint=0xffd870;o.flash.blendMode=ADD;o.flash.x=.46*CELL*HS;o.head.addChild(o.flash);}
-      if(key==='fl'){o.pilot=spr(T.glow,CELL*.22,CELL*.22);o.pilot.tint=0xffa040;o.pilot.blendMode=ADD;o.pilot.x=.34*CELL*HS;o.head.addChild(o.pilot);
-        o.cone=new PIXI.Sprite(T.cone);o.cone.anchor.set(0,.5);o.cone.tint=0xff7a1a;o.cone.blendMode=ADD;o.cone.x=.33*CELL*HS;o.head.addChild(o.cone);
-        o.flash=spr(T.glow,CELL*.4,CELL*.4);o.flash.tint=0xffb040;o.flash.blendMode=ADD;o.flash.x=.36*CELL*HS;o.head.addChild(o.flash);}
+      if(key==='fl'){o.pilot=spr(T.glow,CELL*.22,CELL*.22);o.pilot.tint=0xffa040;o.pilot.blendMode=ADD;o.pilot.x=.43*CELL*HS;o.head.addChild(o.pilot);
+        o.cone=new PIXI.Sprite(T.cone);o.cone.anchor.set(0,.5);o.cone.tint=0xff7a1a;o.cone.blendMode=ADD;o.cone.x=.42*CELL*HS;o.head.addChild(o.cone);
+        o.flash=spr(T.glow,CELL*.4,CELL*.4);o.flash.tint=0xffb040;o.flash.blendMode=ADD;o.flash.x=.45*CELL*HS;o.head.addChild(o.flash);}
       c.addChild(o.head);
     }
     if(key==='tes'){o.idle=spr(T.glow,CELL*1.0,CELL*1.0);o.idle.tint=0x7fd6ff;o.idle.blendMode=ADD;o.idle.alpha=.2;c.addChildAt(o.idle,o.head?c.getChildIndex(o.head):c.children.length);}
@@ -1666,7 +1666,7 @@ function frameTick(){
   getGlow=poolSprite(glowPool,L.fx,T.glow,ADD);
   getDust=poolSprite(dustPool,L.fx,T.smoke,ADD);
   newGame();show('sMenu');
-  window.__benzak={get G(){return G;},MP,RUN,PERKS,META,openPerks,pickPerk,runCalc,EN,build,upgrade,useAbility,airStrike,BR,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
+  window.__benzak={get G(){return G;},save,MP,RUN,repair,repairCost,PERKS,META,openPerks,pickPerk,runCalc,EN,build,upgrade,useAbility,airStrike,BR,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
   const ld=document.getElementById('loading');if(ld)ld.remove();
 })();
 })();
