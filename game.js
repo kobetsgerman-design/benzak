@@ -10,15 +10,18 @@ const MAPS=[
   {id:'wasteland',n:'Пустошь',art:'map',
    WP:[[0,0],[0,1],[5,1],[5,3],[0,3],[0,5],[5,5],[5,7],[0,7],[0,9]],
    SLOTS:[[0,2],[1,2],[2,2],[3,2],[2,4],[3,4],[4,4],[5,4],[0,6],[1,6],[2,6],[3,6],[1,8],[2,8],[1,9],[2,9],[2,0],[3,0]],
-   hp:1,cnt:1,start:100,bonus:20,dark:[.10,.30],warm:0xfff1de,vig:.5},
+   hp:1,cnt:1,start:100,bonus:20,dark:[.10,.30],warm:0xfff1de,vig:.5,
+   amb:{n:20,a:.12,tint:0xffffff,spd:1,dir:'x',w:40,h:14}},
   {id:'dunes',n:'Дюны',art:'map_dunes',
    WP:[[5,0],[5,2],[1,2],[1,4],[4,4],[4,6],[0,6],[0,8],[3,8],[3,9]],
    SLOTS:[[4,1],[2,1],[3,1],[2,3],[3,3],[4,3],[0,3],[1,5],[2,5],[3,5],[5,4],[1,7],[2,7],[3,7],[2,9],[4,8]],
-   hp:1.15,cnt:1.1,start:90,bonus:17,dark:[.05,.26],warm:0xfff4dc,vig:.4},
+   hp:1.15,cnt:1.1,start:90,bonus:17,dark:[.05,.26],warm:0xfff4dc,vig:.4,
+   amb:{n:34,a:.2,tint:0xffe6b0,spd:12,dir:'x',w:70,h:6}},
   {id:'city',n:'Руины города',art:'map_city',
    WP:[[0,0],[0,3],[2,3],[2,1],[4,1],[4,5],[1,5],[1,7],[5,7],[5,9],[2,9]],
    SLOTS:[[1,1],[1,2],[3,2],[3,3],[1,4],[2,4],[3,4],[2,6],[3,6],[4,6],[1,8],[2,8],[3,8],[5,2],[5,5],[1,0]],
-   hp:1.2,cnt:1.15,start:80,bonus:15,dark:[.16,.38],warm:0xeaf0ff,vig:.6}];
+   hp:1.2,cnt:1.15,start:80,bonus:15,dark:[.16,.38],warm:0xeaf0ff,vig:.6,
+   amb:{n:46,a:.2,tint:0xb8d0ff,spd:.9,dir:'y',w:3,h:64}}];
 let MI=0,MAP=MAPS[0],WP=MAP.WP,SLOTS=MAP.SLOTS,PTS=[],SEG=[],TOT=0,NB=[],EXIT=[0,9];
 const TT={
   mg:{n:'Пулемёт',cost:30,range:2.5,up:[25,45]},
@@ -141,7 +144,7 @@ function newGame(level){
   if(level!=null&&level!==MI)setMap(level);
   try{resetScene();}catch(e){}
   G={scrap:MAP.start,fuel:10,wave:0,running:false,over:false,overT:0,speed:1,slots:SLOTS.map(()=>null),
-     enemies:[],parts:[],floats:[],tracers:[],rings:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,map:MI};
+     enemies:[],parts:[],floats:[],tracers:[],rings:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,map:MI,dq:[]};
   G.floats.push({x:3,y:4.6,text:'Карта '+(MI+1)+' · '+MAP.n,t:3,c:'#ffd24a'});
   try{applyMapScene();}catch(e){}
   $('bSpeed').textContent='×1';$('hWaveMax').textContent=NWAVES;closeSheet();updateWaveBtn();
@@ -225,6 +228,7 @@ function endWave(){
 /* ---------- игровой цикл ---------- */
 function boom(x,y,s){
   G.rings.push({x,y,t:.45,max:.45,s});
+  G.dq.push({x,y,s:Math.min(1.3,.3+.25*s),a:.34});     // подпалина на земле
   for(let i=0;i<14*s;i++){const a=Math.random()*6.28,v=.5+Math.random()*2.2*s;
     G.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.6+Math.random()*.5,max:1,c:Math.random()<.5?'#ff8a2a':'#ffd24a',r:.06+Math.random()*.08});}
   for(let i=0;i<6*s;i++)G.parts.push({x,y,vx:(Math.random()-.5),vy:-.6-Math.random(),life:1+Math.random(),max:2,c:'#1c1c1c',r:.1+Math.random()*.1});
@@ -236,6 +240,7 @@ function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/г
   e.hp-=d;e.flash=.08;
   if(e.hp<=0){
     e.dead=true;G.scrap+=EN[e.type].rew;
+    G.floats.push({x:e.x,y:e.y-.15,text:'+'+EN[e.type].rew,t:.85,c:'#ffd24a',s:30});
     boom(e.x,e.y,e.type==='boss'?3:.6);sfx(e.type==='boss'?'boom':'clang');
     if(e.type==='boss')G.shake=.6;
   }
@@ -288,7 +293,13 @@ function step(dt){
     }
     // башни
     for(let i=0;i<SLOTS.length;i++){
-      const t=G.slots[i];if(!t||t.rubble||t.type==='gen')continue;
+      const t=G.slots[i];
+      if(t&&!t.rubble&&t.hp<60){                      // повреждённая башня дымит, а при критическом уроне горит
+        const px=SLOTS[i][0]+.5,py=SLOTS[i][1]+.5;
+        if(Math.random()<dt*(t.hp<30?9:4))G.parts.push({x:px+(Math.random()-.5)*.4,y:py-.1,vx:(Math.random()-.5)*.2,vy:-.5,life:1.1,max:1.1,c:'#2a2623',r:.08+Math.random()*.05});
+        if(t.hp<30&&Math.random()<dt*7)G.parts.push({x:px+(Math.random()-.5)*.35,y:py+(Math.random()-.5)*.2,vx:0,vy:-.8,life:.45,max:.45,k:'fl',c:'#ff8a1a',r:.05+Math.random()*.03});
+      }
+      if(!t||t.rubble||t.type==='gen')continue;
       if(t.rec>0)t.rec-=dt;t.cd-=dt;if(t.cd>0)continue;
       const cx=SLOTS[i][0]+.5,cy=SLOTS[i][1]+.5,R=rangeOf(t),S=LV[t.type],li=lvOf(t)-1;
       let best=null;
@@ -314,6 +325,7 @@ function step(dt){
           G.parts.push({x:best.x+(Math.random()-.5)*r,y:best.y+(Math.random()-.5)*r,vx:(Math.random()-.5)*.8,vy:-.4-Math.random()*.9,life:.35+Math.random()*.25,max:.6,k:'fl',c:'#ff8a1a',r:.12+Math.random()*.07});}
         if(Math.random()<.35)G.parts.push({x:best.x,y:best.y-.1,vx:(Math.random()-.5)*.4,vy:-.5-Math.random()*.4,life:.9,max:.9,c:'#2a2623',r:.09});
         t.tx=best.x;t.ty=best.y;t.fd=dist;
+        if(Math.random()<.05)G.dq.push({x:best.x,y:best.y,s:.26,a:.16});
         t.cd=.1;t.rec=.2;
         if((t.snd=(t.snd||0)-.1)<=0){sfx('fl');t.snd=.5;}
       }else if(t.type==='sp'){
@@ -453,7 +465,7 @@ const ART={                          // имя: [ширина, высота] в 
   raider:[1,.75],biker:[.8,.5],armor:[1.2,.9],shield:[1.2,.9],sniper:[1.05,.8],boss:[2,1],
   mg_base:[1,1],mg_head:[1,1],fl_base:[1,1],fl_head:[1,1],sp_base:[1,1],sp_head:[1,1],gen_base:[1,1]};
 const T={};
-let mapSpr,app,world,floatLayer,L={},lightRT=null,lightSpr,darkG,vig,warm,fxG,selG,rubbleG;
+let decalRT,decalSpr,stampS,mapSpr,app,world,floatLayer,L={},lightRT=null,lightSpr,darkG,vig,warm,fxG,selG,rubbleG;
 const TO=[],EO=new Map(),FO=new Map(),lightPool=[],smokePool=[],glowPool=[],dustPool=[];
 let ADD,ERASE,MULT;
 
@@ -776,7 +788,10 @@ async function initRender(){
   world=new PIXI.Container();app.stage.addChild(world);
   const mk=n=>{const c=new PIXI.Container();world.addChild(c);L[n]=c;return c;};
   mapSpr=new PIXI.Sprite(T[MAP.art]||T.map);mapSpr.width=COLS*CELL;mapSpr.height=ROWS*CELL;world.addChild(mapSpr);
-  mk('slots');mk('towers');mk('links');mk('enemies');mk('smoke');mk('fx');
+  mk('decals');mk('slots');mk('towers');mk('links');mk('enemies');mk('smoke');mk('fx');
+  decalRT=PIXI.RenderTexture.create({width:COLS*CELL/2,height:ROWS*CELL/2});
+  decalSpr=new PIXI.Sprite(decalRT);decalSpr.scale.set(2);L.decals.addChild(decalSpr);
+  stampS=new PIXI.Sprite(T.glow);stampS.anchor.set(.5);
   rubbleG=new PIXI.Graphics();
   applyMapScene();
   selG=new PIXI.Graphics();L.links.addChild(selG);
@@ -803,8 +818,24 @@ function onResize(){
   lightSpr.texture=lightRT;lightSpr.scale.set(2);
   vig.width=W;vig.height=H;warm.width=W;warm.height=H;
 }
+/* штамп в слой следов (колеи, подпалины): дёшево, копится на земле */
+function stamp(tex,x,y,size,tint,alpha,rot){
+  if(!decalRT)return;
+  stampS.texture=tex;stampS.position.set(x*CELL/2,y*CELL/2);stampS.width=stampS.height=size*CELL/2;
+  stampS.tint=tint;stampS.alpha=alpha;stampS.rotation=rot||0;
+  app.renderer.render(stampS,{renderTexture:decalRT,clear:false});
+}
+const WR=[];                       // дымящиеся остовы подбитой техники
+function addWreck(e){
+  const a=ART[e.type],c=new PIXI.Container();c.position.set(e.x*CELL,e.y*CELL);c.rotation=e.a;
+  const b=spr(T[e.type],a[0]*CELL,a[1]*CELL);b.tint=0x2b2723;
+  const g=spr(T.glow,CELL*.9,CELL*.9);g.tint=0xff7a20;g.blendMode=ADD;
+  c.addChild(b,g);L.decals.addChild(c);
+  WR.push({c,b,g,born:G.t,max:e.type==='boss'?9:(e.type==='armor'||e.type==='shield')?5:3.2,x:e.x,y:e.y});
+}
 function applyMapScene(){        // перестраивает карту, площадки и заправку под текущую карту кампании
   if(!mapSpr||!L.slots)return;
+  if(decalRT)app.renderer.render(new PIXI.Container(),{renderTexture:decalRT,clear:true});
   mapSpr.texture=T[MAP.art]||T.map;
   L.slots.removeChildren();
   SLOTS.forEach(s=>{const p=spr(T.slot,CELL,CELL);p.position.set((s[0]+.5)*CELL,(s[1]+.5)*CELL);L.slots.addChild(p);});
@@ -814,6 +845,7 @@ function applyMapScene(){        // перестраивает карту, пл�
   if(vig)vig.alpha=MAP.vig;
 }
 function resetScene(){
+  WR.forEach(w=>w.c.destroy({children:true}));WR.length=0;
   TO.forEach(o=>o&&o.c.destroy({children:true}));TO.length=0;
   for(const o of EO.values())o.c.destroy({children:true});EO.clear();
   for(const o of FO.values())o.destroy();FO.clear();
@@ -915,7 +947,15 @@ function syncEnemies(){
     seen.add(e);
     let o=EO.get(e);if(!o){o=makeEnemyObj(e);EO.set(e,o);}
     o.c.position.set(e.x*CELL,e.y*CELL);
-    o.bodyC.rotation=e.a;o.sh.rotation=e.a;
+    o.bodyC.rotation=e.a+Math.sin(G.t*9+e.ph)*.012;o.sh.rotation=e.a;
+    o.bodyC.y=Math.sin(G.t*12+e.ph)*(e.type==='boss'?1.5:2.2);          // лёгкая тряска подвески
+    if(o.lx===undefined){o.lx=e.x;o.ly=e.y;}
+    else if((e.x-o.lx)**2+(e.y-o.ly)**2>.0121){                       // колея за колёсами
+      const nx=-Math.sin(e.a),ny=Math.cos(e.a),off=e.type==='boss'?.28:e.type==='biker'?0:.14;
+      if(off){stamp(T.glow,e.x+nx*off,e.y+ny*off,.07,0,.12);stamp(T.glow,e.x-nx*off,e.y-ny*off,.07,0,.12);}
+      else stamp(T.glow,e.x,e.y,.06,0,.12);
+      o.lx=e.x;o.ly=e.y;
+    }
     o.fl.alpha=e.flash>0?.7:0;
     o.spark.visible=e.atk;
     if(e.atk)o.spark.scale.set(.5+.25*Math.sin(G.t*40)+.01);
@@ -930,7 +970,7 @@ function syncEnemies(){
     if(e.slowT>0){g.lineStyle(4,0x7fd6ff,.9);g.drawCircle(0,0,.34*CELL);}
     if(e.stun>0){g.lineStyle(0);g.beginFill(0xffffff);for(let k=0;k<3;k++){const a=G.t*6+k*2.1;g.drawCircle(Math.cos(a)*.2*CELL,-.28*CELL+Math.sin(a)*.05*CELL,5);}g.endFill();}
   }
-  for(const [e,o] of EO)if(!seen.has(e)){o.c.destroy({children:true});EO.delete(e);}
+  for(const [e,o] of EO)if(!seen.has(e)){if(e.dead&&!e.leaked)addWreck(e);o.c.destroy({children:true});EO.delete(e);}
 }
 
 /* ---------- эффекты, свет ---------- */
@@ -1016,13 +1056,29 @@ function syncFx(){
   for(let i=ns;i<smokePool.length;i++)smokePool[i].visible=false;
   for(let i=ng;i<glowPool.length;i++)glowPool[i].visible=false;
 
-  // пыль по ветру
-  for(let k=0;k<20;k++){
-    const s=getDust(k);
-    s.x=(((k*.173+G.t*(.015+k%5*.008))%1.2)-.1)*COLS*CELL;
-    s.y=((k*.311+Math.sin(G.t*.4+k)*.02)%1)*ROWS*CELL;
-    s.width=(40+k%4*24);s.height=14+k%3*6;s.alpha=.12;
+  // подпалины и остовы
+  while(G.dq.length){const d=G.dq.pop();stamp(T.smoke,d.x,d.y,d.s,0x1a1410,d.a,Math.random()*6);}
+  for(let i=WR.length-1;i>=0;i--){
+    const w=WR[i],age=G.t-w.born,f=1-age/w.max;
+    if(f<=0){w.c.destroy({children:true});WR.splice(i,1);continue;}
+    w.b.alpha=Math.min(1,f*2);w.g.alpha=(.45+.35*Math.sin(G.t*18+i))*f;
+    if(Math.random()<.25)G.parts.push({x:w.x+(Math.random()-.5)*.3,y:w.y,vx:(Math.random()-.5)*.3,vy:-.5,life:1,max:1,c:'#2a2623',r:.07+Math.random()*.05});
   }
+  // погода по картам: пыль, песчаные струи, дождь
+  const am=MAP.amb;
+  for(let k=0;k<am.n;k++){
+    const s=getDust(k);s.visible=true;s.tint=am.tint;s.alpha=am.a;
+    if(am.dir==='y'){
+      s.x=((k*.137+Math.sin(G.t*.3+k)*.01)%1)*COLS*CELL;
+      s.y=(((k*.311+G.t*am.spd*(.5+(k%4)*.2))%1.15)-.08)*ROWS*CELL;
+      s.width=am.w;s.height=am.h;
+    }else{
+      s.x=(((k*.173+G.t*am.spd*(.015+k%5*.008))%1.2)-.1)*COLS*CELL;
+      s.y=((k*.311+Math.sin(G.t*.4+k)*.02)%1)*ROWS*CELL;
+      s.width=am.w+k%4*24;s.height=am.h+k%3*4;
+    }
+  }
+  for(let k=am.n;k<dustPool.length;k++)dustPool[k].visible=false;
 
   // плавающий текст
   const cur=new Set();
@@ -1030,7 +1086,7 @@ function syncFx(){
     cur.add(f);
     let t=FO.get(f);
     if(!t){
-      t=new PIXI.Text(f.text,{fontFamily:'Trebuchet MS, Arial',fontSize:44,fontWeight:'bold',fill:f.c,stroke:'#000',strokeThickness:7,lineJoin:'round'});
+      t=new PIXI.Text(f.text,{fontFamily:'Trebuchet MS, Arial',fontSize:f.s||44,fontWeight:'bold',fill:f.c,stroke:'#000',strokeThickness:7,lineJoin:'round'});
       t.anchor.set(.5);floatLayer.addChild(t);FO.set(f,t);
     }
     t.position.set(f.x*CELL,f.y*CELL);t.alpha=Math.min(1,f.t);
@@ -1086,7 +1142,6 @@ function frameTick(){
   getSmoke=poolSprite(smokePool,L.smoke,T.smoke,PIXI.BLEND_MODES.NORMAL);
   getGlow=poolSprite(glowPool,L.fx,T.glow,ADD);
   getDust=poolSprite(dustPool,L.fx,T.smoke,ADD);
-  dustPool.forEach(s=>s.alpha=.12);
   newGame();show('sMenu');
   window.__benzak={get G(){return G;},build,upgrade,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
   const ld=document.getElementById('loading');if(ld)ld.remove();
