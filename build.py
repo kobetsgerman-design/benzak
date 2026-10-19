@@ -8,10 +8,10 @@ html = rd('index.html')
 pixi = rd('lib/pixi.min.js').replace('</script>', '<\\/script>')
 game = rd('game.js').replace('</script>', '<\\/script>')
 assets = {}
-for f in sorted(glob.glob(os.path.join(here, 'assets', '*.png')) + glob.glob(os.path.join(here, 'assets', '*.jpg')) + glob.glob(os.path.join(here, 'assets', 'props', '*.png'))):
+for f in sorted(glob.glob(os.path.join(here, 'assets', '*.png')) + glob.glob(os.path.join(here, 'assets', '*.jpg')) + glob.glob(os.path.join(here, 'assets', 'props', '*.png')) + glob.glob(os.path.join(here, 'assets', '*.m4a'))):
     name, ext = os.path.splitext(os.path.basename(f))
     if os.path.basename(os.path.dirname(f)) == 'props': name = 'prop_' + name
-    mime = 'image/jpeg' if ext == '.jpg' else 'image/png'
+    mime = 'audio/mp4' if ext == '.m4a' else 'image/jpeg' if ext == '.jpg' else 'image/png'
     assets[name] = 'data:%s;base64,' % mime + base64.b64encode(open(f, 'rb').read()).decode()
 inline = '<script>window.__ASSETS=%s;</script>\n<script>%s</script>\n<script>%s</script>' % (json.dumps(assets), pixi, game)
 marker = '<script src="lib/pixi.min.js"></script>\n<script src="game.js"></script>'
