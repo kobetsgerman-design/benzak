@@ -73,6 +73,10 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 #top{background:linear-gradient(rgba(255,235,200,.05),rgba(0,0,0,.5)),var(--panel,linear-gradient(#4d3826,#22160e));background-size:auto,360px}
 #bot{background:linear-gradient(rgba(0,0,0,.45),rgba(255,235,200,.04)),var(--panel,linear-gradient(#22160e,#3e2b1c));background-size:auto,360px}
 #abil{background:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.6)),var(--panel,linear-gradient(#2a1c12,#201409));background-size:auto,360px}
+#hint{display:none;position:absolute;left:178px;right:6px;top:4px;bottom:4px;z-index:4;align-items:center;justify-content:center;text-align:center;padding:2px 8px;border-radius:10px;font-size:12.5px;line-height:1.2;font-weight:bold;color:#ffe9b8;background:linear-gradient(#5a3a16,#3a230d);border:2px solid #ffb347;box-shadow:0 2px 8px #000a;pointer-events:none;animation:hintp 1.8s ease-in-out infinite}
+#abil{position:relative}
+@keyframes hintp{50%{box-shadow:0 0 14px #ffb347aa,0 3px 10px #000a}}
+.cmb{color:#ffd24a!important;font-weight:bold}
 
 /* ---- звёзды, достижения ---- */
 .stars{font-size:30px;color:#ffcf6a;letter-spacing:4px;text-shadow:0 2px 0 #5a3a08,0 0 12px #ff9a2a88}
@@ -89,7 +93,7 @@ button:not(:disabled):hover{filter:brightness(1.1)}
   <div id="toast"></div>
   <div id="top"><span title="Лом"><img class="ic" data-ui="scrap" alt=""><b id="hScrap">100</b></span><span title="Топливо"><img class="ic" data-ui="fuel" alt=""><b id="hFuel">10</b><i>/10</i></span><span title="Волна"><img class="ic" data-ui="skull" alt=""><b id="hWave">0</b><i>/<em id="hWaveMax">12</em></i></span></div>
   <div id="cw"><canvas id="cv"></canvas><div id="sheet"></div></div>
-  <div id="abil"><div id="abbtn"><button class="ab" data-a="air" title="Воздушный удар"><img data-ui="air" alt=""><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="rep" title="Ремонт всех башен"><img data-ui="rep" alt=""><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="emp" title="ЭМИ: оглушает врагов"><img data-ui="emp" alt=""><span class="cd"></span><span class="t"></span></button></div><div id="nextw"></div></div>
+  <div id="abil"><div id="abbtn"><button class="ab" data-a="air" title="Воздушный удар"><img data-ui="air" alt=""><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="rep" title="Ремонт всех башен"><img data-ui="rep" alt=""><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="emp" title="ЭМИ: оглушает врагов"><img data-ui="emp" alt=""><span class="cd"></span><span class="t"></span></button></div><div id="nextw"></div><div id="hint"></div></div>
   <div id="bot"><button id="bWave">Начать волну</button><button id="bSpeed" class="alt" style="flex:.45">×1</button><button id="bMenu" class="alt" style="flex:.6">Меню</button></div>
 
   <div class="scr" id="sMenu" style="display:flex">

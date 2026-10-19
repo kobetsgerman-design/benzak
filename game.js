@@ -631,13 +631,34 @@ function showEnd(){
 /* ---------- интерфейс ---------- */
 const sheet=$('sheet');let sheetHtml='';
 function closeSheet(){if(G)G.sel=-1;sheet.style.display='none';sheetHtml='';}
+/* обучение: короткие подсказки на первой карте, пока игрок не дошёл до 3-й волны */
+const TUT={msg:'',pulse:false};
+function tutorUpdate(){
+  const el=$('hint');let msg='',pulse=false;
+  if(G&&!G.over&&!save.tut&&MI===0){
+    const built=G.slots.filter(t=>t&&!t.rubble).length,links=G.links.length;
+    if(G.wave>=3){save.tut=1;persist();}
+    else if(!G.running){
+      if(built===0){msg='Нажмите на плиту и постройте первую башню';pulse=true;}
+      else if(built===1){msg='Поставьте вторую башню рядом: соседи усиливают друг друга';pulse=G.sel<0;}
+      else if(G.wave===0)msg='Хорошо! Нажмите «Начать волну»';
+      else if(links===0&&G.wave<=2)msg='Совет: башни РАЗНЫХ типов рядом дают комбо (★ в меню постройки)';
+      else if(G.wave===1)msg='Нажмите на башню, чтобы улучшить или починить её';
+      else if(G.wave===2)msg='Способности внизу: воздушный удар, ремонт, ЭМИ';
+    }else if(G.wave===1)msg='Враги едут к заправке! Не дайте им доехать';
+  }
+  TUT.msg=msg;TUT.pulse=pulse;
+  if(el.dataset.m!==msg){el.dataset.m=msg;el.textContent=msg;el.style.display=msg?'flex':'none';}
+}
 function refreshSheet(){
   if(!G||G.sel<0){return;}
   const i=G.sel,t=G.slots[i];let h='';
   if(!t||t.rubble){
-    h='<div class="h">'+(t?'Обломки: ':'')+'Построить башню</div>';
+    const nbT=NB[i].map(j=>G.slots[j]).filter(x=>x&&!x.rubble).map(x=>x.type);
+    h='<div class="h">'+(t?'Обломки: ':'')+'Построить башню'+(nbT.length?'':'<br><small>рядом никого: соседние башни усиливают друг друга</small>')+'</div>';
     for(const k of TKEYS){const d=TT[k];
-      h+='<button data-b="'+k+'"'+(G.scrap<d.cost?' disabled':'')+'>'+d.n+' — '+d.cost+'</button>';}
+      const cs=[...new Set(nbT.map(n=>[k,n].sort().join('+')).filter(x=>CBMAP[x]))].map(x=>CBMAP[x].n);   // комбо, которые получатся с соседями
+      h+='<button data-b="'+k+'"'+(G.scrap<d.cost?' disabled':'')+'>'+d.n+' — '+d.cost+(cs.length?'<br><small class="cmb">★ '+cs.join(', ')+'</small>':'')+'</button>';}
   }else{
     const lk=G.links.filter(l=>l.i===i||l.j===i).map(l=>CBMAP[l.k].n);
     const uc=upCost(t);
@@ -1435,6 +1456,11 @@ function syncFx(){
   }
   // выбранная башня
   selG.clear();
+  if(TUT.pulse){const pa=.3+.3*Math.sin(G.t*5);selG.lineStyle(5,0xffd24a,pa);SLOTS.forEach(([c,r],i)=>{if(!G.slots[i])selG.drawRoundedRect(c*CELL+8,r*CELL+8,CELL-16,CELL-16,14);});}
+  if(G.sel>=0&&(!G.slots[G.sel]||G.slots[G.sel].rubble)){            // пустая площадка: обводим соседние башни, с которыми можно собрать комбо
+    selG.lineStyle(4,0xffd24a,.9);
+    for(const j of NB[G.sel]){const o=G.slots[j];if(!o||o.rubble)continue;const [c2,r2]=SLOTS[j];selG.drawRoundedRect(c2*CELL+4,r2*CELL+4,CELL-8,CELL-8,16);}
+  }
   if(G.sel>=0){
     const [c,r]=SLOTS[G.sel],t=G.slots[G.sel];
     if(t&&!t.rubble){
@@ -1558,7 +1584,7 @@ function frameTick(){
   if(G.alert>0)G.alert=Math.max(0,G.alert-real*.45);
   const sdt=real*G.speed*(G.slowT>0?.45:1),n=Math.ceil(sdt/.025);
   for(let i=0;i<n;i++)step(sdt/n);
-  hud();refreshSheet();humUpdate();
+  hud();refreshSheet();tutorUpdate();humUpdate();
   syncTowers();syncEnemies();syncFx();
 }
 
