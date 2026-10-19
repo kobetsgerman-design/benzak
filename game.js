@@ -11,7 +11,11 @@ const MAPS=[
    WP:[[0,0],[0,1],[5,1],[5,3],[0,3],[0,5],[5,5],[5,7],[0,7],[0,9]],
    SLOTS:[[0,2],[1,2],[2,2],[3,2],[2,4],[3,4],[4,4],[5,4],[0,6],[1,6],[2,6],[3,6],[1,8],[2,8],[1,9],[2,9],[2,0],[3,0]],
    hp:1,cnt:1,start:100,bonus:20,dark:[.10,.30],warm:0xfff1de,vig:.5,
-   amb:{n:20,a:.12,tint:0xffffff,spd:1,dir:'x',w:40,h:14},grade:[.12,.08,1.0]},
+   amb:{n:20,a:.12,tint:0xffffff,spd:1,dir:'x',w:40,h:14},grade:[.12,.08,1.0],
+   decor:{set:'wasteland',seed:11,dens:.8,items:[
+     {i:1,w:2,sz:.62,k:'rock'},{i:2,w:2,sz:.58,k:'rock'},{i:3,w:1,sz:1.0,k:'wreck',max:2},
+     {i:4,w:2,sz:.55,k:'rock',max:5},{i:5,w:3,sz:.5,k:'sway'},{i:6,w:1,sz:.55,k:'bone',max:2},
+     {i:7,w:1,sz:.55,k:'rock',max:2},{i:8,w:2,sz:.48,k:'rock'},{i:9,w:2,sz:.6,k:'flat'}]}},
   {id:'dunes',n:'Дюны',art:'map_dunes',
    WP:[[5,0],[5,2],[1,2],[1,4],[4,4],[4,6],[0,6],[0,8],[3,8],[3,9]],
    SLOTS:[[4,1],[2,1],[3,1],[2,3],[3,3],[4,3],[0,3],[1,5],[2,5],[3,5],[5,4],[1,7],[2,7],[3,7],[2,9],[4,8]],
@@ -25,7 +29,12 @@ const MAPS=[
    WP:[[0,0],[0,3],[2,3],[2,1],[4,1],[4,5],[1,5],[1,7],[5,7],[5,9],[2,9]],
    SLOTS:[[1,1],[1,2],[3,2],[3,3],[1,4],[2,4],[3,4],[2,6],[3,6],[4,6],[1,8],[2,8],[3,8],[5,2],[5,5],[1,0]],
    hp:1.2,cnt:1.15,start:80,bonus:15,dark:[.16,.38],warm:0xeaf0ff,vig:.6,
-   amb:{n:46,a:.2,tint:0xb8d0ff,spd:.9,dir:'y',w:3,h:64},grade:[-.04,.14,.98]}];
+   amb:{n:46,a:.2,tint:0xb8d0ff,spd:.9,dir:'y',w:3,h:64},grade:[-.04,.14,.98],
+   decor:{set:'city',seed:5,dens:.85,items:[
+     {i:1,w:2,sz:.78,k:'rock'},{i:2,w:3,sz:1.15,k:'rock',max:5},{i:3,w:1,sz:.95,k:'wreck',max:3},
+     {i:4,w:2,sz:.8,k:'rock',max:3},{i:5,w:2,sz:.85,k:'sway',max:3},{i:6,w:2,sz:.7,k:'flat',max:3},
+     {i:7,w:1,sz:.5,k:'rock',max:3},{i:8,w:1,sz:.5,k:'rock',max:3},{i:9,w:1,sz:.5,k:'rock',max:3},
+     {i:10,w:1,sz:.55,k:'rock',max:2},{i:11,w:3,sz:.5,k:'pebble'}]}}];
 let MI=0,MAP=MAPS[0],WP=MAP.WP,SLOTS=MAP.SLOTS,PTS=[],SEG=[],TOT=0,NB=[],EXIT=[0,9],FLEN=1,FA=0;
 const TT={
   mg:{n:'Пулемёт',cost:30,range:2.5,up:[25,45]},
@@ -1056,6 +1065,7 @@ function buildDecor(){
       const sh=new PIXI.Sprite(tex);sh.anchor.set(.5);sh.scale.set(sc*1.02);sh.tint=0;sh.alpha=.34;sh.rotation=rot;
       const off=Math.max(tex.width,tex.height)*sc*.07;sh.position.set(off*.8,off*1.1);          // тень от света сверху-слева
       const sp=new PIXI.Sprite(tex);sp.anchor.set(.5);sp.scale.set(sc);sp.rotation=rot;
+      if(it.k==='flat')sh.visible=false;                                // пятна лежат на земле без тени
       cn.addChild(sh,sp);L.props.addChild(cn);
       PROPS.push({cn,sp,sh,k:it.k,x:x/CELL,y:y/CELL,rot,ph:R()*6.28,sc});
     }
