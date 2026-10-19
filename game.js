@@ -312,6 +312,7 @@ function step(dt){
         if(t.f.punct){t.shots++;if(t.shots%3===0)best.stun=1.5;}
         t.cd=1/(S.rate[li]*genK(t.f.rate,.2));
         G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.07,c:'#ffe9a0'});sfx('mg');
+        {const pa=t.aim+1.55;G.parts.push({x:cx+Math.cos(t.aim)*.15,y:cy+Math.sin(t.aim)*.15,vx:Math.cos(pa)*1.6+(Math.random()-.5)*.4,vy:Math.sin(pa)*1.6-.2,life:.45,max:.45,c:'#ffd060',r:.022});}   // гильза
       }else if(t.type==='fl'){
         // непрерывная струя пламени: тик каждые 0.1 с, средний урон в секунду прежний (dmg × rate)
         const r=S.r[li]*genK(t.f.det,.25),tick=S.dmg[li]*S.rate[li]*.1;
@@ -324,6 +325,7 @@ function step(dt){
         for(let k=0;k<3;k++){            // очаг огня на цели
           G.parts.push({x:best.x+(Math.random()-.5)*r,y:best.y+(Math.random()-.5)*r,vx:(Math.random()-.5)*.8,vy:-.4-Math.random()*.9,life:.35+Math.random()*.25,max:.6,k:'fl',c:'#ff8a1a',r:.12+Math.random()*.07});}
         if(Math.random()<.35)G.parts.push({x:best.x,y:best.y-.1,vx:(Math.random()-.5)*.4,vy:-.5-Math.random()*.4,life:.9,max:.9,c:'#2a2623',r:.09});
+        if(Math.random()<.5)G.parts.push({x:best.x+(Math.random()-.5)*r,y:best.y,vx:(Math.random()-.5)*.5,vy:-.9-Math.random()*.6,life:.8,max:.8,c:'#ffd070',r:.018});   // уголёк
         t.tx=best.x;t.ty=best.y;t.fd=dist;
         if(Math.random()<.05)G.dq.push({x:best.x,y:best.y,s:.26,a:.16});
         t.cd=.1;t.rec=.2;
@@ -725,6 +727,7 @@ function utilTex(w,h,fn){
   fn(cn.getContext('2d'),w,h);return PIXI.Texture.from(cn);
 }
 function makeUtilTextures(){
+  T.tread=utilTex(16,16,(c,w,h)=>{c.fillStyle='rgba(0,0,0,.55)';c.fillRect(0,0,5,h);c.fillStyle='rgba(255,235,200,.16)';c.fillRect(6,0,2,h);});
   T.glow=utilTex(128,128,(c,w,h)=>{
     const g=c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
     g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');
@@ -861,7 +864,7 @@ function makeTowerObj(i,t){
     c.addChild(spr(T.rubble,CELL,CELL));o.glow=spr(T.glow,CELL*.5,CELL*.5);o.glow.tint=0xff6a1a;o.glow.blendMode=ADD;c.addChild(o.glow);
   }else{
     const sh=spr(T.shadow,CELL*1.05,CELL*.8);sh.position.set(.05*CELL,.1*CELL);sh.alpha=.55;c.addChild(sh);   // мягкая тень на земле
-    c.addChild(spr(lvTex('base'),CELL,CELL));
+    o.baseSpr=spr(lvTex('base'),CELL,CELL);o.bs=o.baseSpr.scale.x;c.addChild(o.baseSpr);
     if(T[key+'_head']){
       o.head=new PIXI.Container();
       const hasLvHead=lv>1&&!!T[key+'_head'+lv];
@@ -869,7 +872,8 @@ function makeTowerObj(i,t){
       if(lv>1&&!hasLvHead)o.headSpr.scale.set(o.headSpr.scale.x*(1+.07*(lv-1)));   // без арта: голова крупнее
       o.head.addChild(o.headSpr);
       if(key==='mg'){o.flash=spr(T.glow,CELL*.55,CELL*.55);o.flash.tint=0xffd870;o.flash.blendMode=ADD;o.flash.x=.46*CELL;o.head.addChild(o.flash);}
-      if(key==='fl'){o.cone=new PIXI.Sprite(T.cone);o.cone.anchor.set(0,.5);o.cone.tint=0xff7a1a;o.cone.blendMode=ADD;o.cone.x=.33*CELL;o.head.addChild(o.cone);
+      if(key==='fl'){o.pilot=spr(T.glow,CELL*.22,CELL*.22);o.pilot.tint=0xffa040;o.pilot.blendMode=ADD;o.pilot.x=.34*CELL;o.head.addChild(o.pilot);
+        o.cone=new PIXI.Sprite(T.cone);o.cone.anchor.set(0,.5);o.cone.tint=0xff7a1a;o.cone.blendMode=ADD;o.cone.x=.33*CELL;o.head.addChild(o.cone);
         o.flash=spr(T.glow,CELL*.4,CELL*.4);o.flash.tint=0xffb040;o.flash.blendMode=ADD;o.flash.x=.36*CELL;o.head.addChild(o.flash);}
       c.addChild(o.head);
     }
@@ -906,11 +910,15 @@ function syncTowers(){
       const k=(t.type==='mg'?14:5)*rec;
       o.head.position.set(-Math.cos(t.aim)*k,-Math.sin(t.aim)*k);
       if(o.flash)o.flash.visible=rec>.45;
+      if(o.baseSpr)o.baseSpr.scale.set(o.bs*(1+.018*rec));                       // база «просаживается» при выстреле
+      if(o.pilot)o.pilot.alpha=rec>0?0:.4+.25*Math.sin(G.t*13+i*1.7);            // дежурный огонёк сопла
+      if(t.type==='sp'){t.sv=(t.sv||0)*.95+(rec>0?.1:0);t.sa=(t.sa||0)+t.sv;o.headSpr.rotation=t.sa;}   // барабан раскручивается
       if(o.cone){o.cone.visible=rec>0;o.cone.width=(.25+.5*rec)*CELL;o.cone.height=.3*CELL*(.8+.4*Math.sin(G.t*40));}
     }
     if(o.glow){
       const lin=G.links.some(l=>l.i===i||l.j===i);
       o.glow.visible=lin;o.glow.alpha=.18+.15*Math.sin(G.t*5+i);
+      if(t.type==='gen'&&o.baseSpr)o.baseSpr.scale.set(o.bs*(1+(lin?.012:.004)*Math.sin(G.t*22+i)));   // вибрация генератора
     }
     o.bar.visible=t.hp<100;
     if(o.bar.visible){o.b1.width=Math.max(2,(.72*CELL-4)*t.hp/100);o.b1.tint=t.hp>40?0x6ec83a:0xe2452a;}
@@ -918,6 +926,14 @@ function syncTowers(){
 }
 
 /* ---------- враги ---------- */
+/* колёса на спрайтах техники: [x,y,w,h] в % от размера спрайта (смотрит вправо); поверх рисуется бегущий протектор */
+const WHEELS={
+  raider:[[9,14,20,12],[66,17,17,10],[9,73,20,12],[66,73,17,10]],
+  biker:[[12,47.5,10,8],[80,51.5,13,5]],
+  armor:[[12,23.5,15,8],[29,23.5,15,8],[60.5,25.5,14,7],[12,70,15,8],[29,70,15,8],[60.5,70,14,6.5]],
+  shield:[[12,23.5,15,8],[29,23.5,15,8],[62,26,11,4.5],[12,70,15,8],[29,70,15,8],[62,71,11,6.5]],
+  sniper:[[15,23,15,8],[57,24,15,8],[15,71,16,8],[60,73,16,8]],
+  boss:[[12,31,9,3.8],[22,31,9,3.8],[50,32,8,4.5],[59,32,7,4.5],[80,33,9,3.5],[12,66,9,4.5],[22,66,9,4.5],[50,66,8,4],[59,66,7,4],[80,65,8,3.2]]};
 function makeEnemyObj(e){
   const c=new PIXI.Container();
   const a=ART[e.type];
@@ -928,7 +944,12 @@ function makeEnemyObj(e){
   lamp.x=a[0]*CELL*.42;lamp.width=CELL*(e.type==='boss'?1.6:1.1);lamp.height=CELL*.6;
   lamp.tint=e.type==='boss'?0xff5a28:0xffe2a0;lamp.alpha=.5;
   const fl=spr(T[e.type],a[0]*CELL,a[1]*CELL);fl.blendMode=ADD;fl.alpha=0;
-  bodyC.addChild(body,lamp,fl);
+  const trs=[],Wd=a[0]*CELL,Hd=a[1]*CELL;
+  for(const r of(WHEELS[e.type]||[])){
+    const t=new PIXI.TilingSprite(T.tread,r[2]/100*Wd,r[3]/100*Hd);
+    t.position.set(r[0]/100*Wd-Wd/2,r[1]/100*Hd-Hd/2);t.tileScale.set(1.3);t.alpha=.85;trs.push(t);
+  }
+  bodyC.addChild(body,...trs,lamp,fl);
   const spark=spr(T.glow,CELL*.5,CELL*.5);spark.tint=0xffd070;spark.blendMode=ADD;spark.visible=false;
   spark.x=a[0]*CELL*.5;bodyC.addChild(spark);
   const st=new PIXI.Graphics();
@@ -939,7 +960,7 @@ function makeEnemyObj(e){
   bar.addChild(b0,b1);bar.y=-(e.type==='boss'?.62:.5)*CELL;
   c.addChild(sh,bodyC,st,bar);
   L.enemies.addChild(c);
-  return {c,sh,bodyC,fl,spark,st,bar,b1,w,lamp,last:0};
+  return {c,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
 }
 function syncEnemies(){
   const seen=new Set();
@@ -957,6 +978,11 @@ function syncEnemies(){
       o.lx=e.x;o.ly=e.y;
     }
     o.fl.alpha=e.flash>0?.7:0;
+    for(const t of o.trs)t.tilePosition.x=e.d*CELL*.9;                  // протектор бежит с реальной скоростью
+    const hf=e.hp/e.max;
+    o.body.tint=hf<.25?0xa89888:hf<.5?0xcfc0b0:0xffffff;                  // потёртая, закопчённая броня
+    if(hf<.5&&Math.random()<.05)G.parts.push({x:e.x-Math.cos(e.a)*.25,y:e.y-Math.sin(e.a)*.25-.05,vx:(Math.random()-.5)*.2,vy:-.4,life:.9,max:.9,c:'#2a2623',r:.07+Math.random()*.04});
+    if(hf<.25&&Math.random()<.08)G.parts.push({x:e.x-Math.cos(e.a)*.2+(Math.random()-.5)*.2,y:e.y-Math.sin(e.a)*.2,vx:0,vy:-.7,life:.4,max:.4,k:'fl',c:'#ff8a1a',r:.045});
     o.spark.visible=e.atk;
     if(e.atk)o.spark.scale.set(.5+.25*Math.sin(G.t*40)+.01);
     o.bar.visible=e.hp<e.max;
@@ -1007,6 +1033,13 @@ function syncFx(){
     g.lineStyle(6,0xfff0aa,.6+pulse*.4);g.moveTo(x1,y1);g.lineTo(x2,y2);
     const k=(G.t*1.4+l.i*.37)%1;
     g.lineStyle(0);g.beginFill(0xffffff,.95);g.drawCircle(x1+(x2-x1)*k,y1+(y2-y1)*k,6);g.endFill();
+    const sa=G.slots[l.i],sb=G.slots[l.j];
+    if(sa&&sb&&(sa.type==='gen'||sb.type==='gen')&&Math.random()<.8){          // электрическая дуга от генератора
+      const n=7,amp=.07*CELL,dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),nx=-dy/len,ny=dx/len,pts=[];
+      for(let q=0;q<=n;q++){const j=(q===0||q===n)?0:(Math.random()-.5)*2*amp;pts.push([x1+dx*q/n+nx*j,y1+dy*q/n+ny*j]);}
+      g.lineStyle(7,0x7fd0ff,.28);pts.forEach((pt,q)=>q?g.lineTo(pt[0],pt[1]):g.moveTo(pt[0],pt[1]));
+      g.lineStyle(2.4,0xe8f8ff,.95);pts.forEach((pt,q)=>q?g.lineTo(pt[0],pt[1]):g.moveTo(pt[0],pt[1]));
+    }
   }
   for(const t of G.tracers){
     const a=Math.min(1,t.t*12),col=parseInt(t.c.slice(1),16),w=(t.w||2);
@@ -1115,6 +1148,7 @@ function syncFx(){
   });
   for(const l of G.links){
     const a=SLOTS[l.i],b=SLOTS[l.j];lightAt((a[0]+b[0])/2+.5,(a[1]+b[1])/2+.5,1.3,.5,0xffd870);
+    if((G.slots[l.i]&&G.slots[l.i].type==='gen')||(G.slots[l.j]&&G.slots[l.j].type==='gen'))lightAt((a[0]+b[0])/2+.5,(a[1]+b[1])/2+.5,1.7,.3+.3*Math.random(),0x9fe0ff);
   }
   for(const e of G.enemies){
     lightAt(e.x,e.y,e.type==='boss'?2.6:1.2,.55,e.type==='boss'?0xff7040:0xffffff);
@@ -1122,6 +1156,7 @@ function syncFx(){
     if(e.burn>0)lightAt(e.x,e.y,1.6,.7,0xff8030);
   }
   for(const r of G.rings){const f=r.t/r.max;lightAt(r.x,r.y,(1-f)*3+1.2,f*.95,0xffa040);}
+  for(const w of WR)lightAt(w.x,w.y,1.1,.45*Math.max(0,1-(G.t-w.born)/w.max),0xff8030);   // тлеющие остовы светятся
   for(const t of G.tracers)if(t.w){lightAt(t.x2,t.y2,2.2,.8*Math.min(1,t.t*10),0xffa050);}
   for(let i=lightN;i<lightPool.length;i++)lightPool[i].visible=false;
   app.renderer.render(lightC,{renderTexture:lightRT,clear:true});
