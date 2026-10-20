@@ -17,6 +17,7 @@ ctx.draw(img, in: CGRect(x: 0, y: 0, width: w, height: h))
 
 // фон = светлый и малонасыщенный (белый, серая тень, линии чертежа вне объекта)
 func isBg(_ i: Int) -> Bool {
+    if px[i+3] < 10 { return true }                 // уже прозрачный пиксель (вход — вырезанный PNG) тоже считается фоном
     let r = Int(px[i]), g = Int(px[i+1]), b = Int(px[i+2])
     let mx = max(r, g, b), mn = min(r, g, b)
     return mx > 150 && (mx - mn) < 38
