@@ -1092,7 +1092,7 @@ $('eMenu').onclick=()=>show('sMenu');
 const CELL=180,PX=256;               // клетка в мире (px) и в текстурах (px)
 const ART={                          // имя: [ширина, высота] в клетках
   map:[6,10],map_dunes:[6,10],map_city:[6,10],slot:[1,1],station:[1,1],rubble:[1,1],
-  raider:[1,.75],biker:[.95,.5],armor:[1.35,.87],shield:[1.35,.87],sniper:[1.4,.75],drone:[.85,.85],medic:[1.3,.82],boss:[2.2,1.1],warboy:[.8,.43],vaulter:[1.3,.52],doof:[1.5,.88],
+  raider:[1,.75],biker:[.95,.5],armor:[1.35,.87],shield:[1.35,.87],sniper:[1.4,.75],drone:[.85,.85],medic:[1.3,.82],boss:[2.2,1.1],warboy:[.75,.5],vaulter:[1.2,.63],doof:[1.5,.88],
   tes_base:[1,1],tes_head:[1,1],mor_base:[1,1],mor_head:[1,1],
   mg_base:[1,1],mg_head:[1,1],fl_base:[1,1],fl_head:[1,1],sp_base:[1,1],sp_head:[1,1],gen_base:[1,1]};
 const T={};
@@ -1448,7 +1448,7 @@ async function loadArt(){
     if(!(window.__ASSETS&&window.__ASSETS[n])&&location.protocol==='file:')continue;
     tryLv.push(tracked(texAsset(n,'assets/'+n,['webp']).then(t=>{T[n]=t;real++;}).catch(()=>{})));   // необязательный арт: только WebP, чтобы не плодить 404
   }
-  for(const n of ['vfx_boom','vfx_flash'])if(window.__ASSETS&&window.__ASSETS[n]||location.protocol!=='file:')tryLv.push(tracked(texAsset(n,'assets/'+n,['webp']).then(t=>{T[n]=t;}).catch(()=>{})));   // покадровые взрывы и вспышки (листы 3×2)
+  for(const n of ['vfx_boom','vfx_flash','el_plate','el_nitro','el_barrel','el_banner','boss_city','warboy_run','vaulter_run'])if(window.__ASSETS&&window.__ASSETS[n]||location.protocol!=='file:')tryLv.push(tracked(texAsset(n,'assets/'+n,['webp']).then(t=>{T[n]=t;}).catch(()=>{})));   // покадровые взрывы и вспышки (листы 3×2)
   await Promise.all(tryLv);
   const sm=Math.min(save.level,MAPS.length-1);                                   // карта, с которой игрок продолжит, и первая карта — до первого экрана
   await tracked(ensureMap(0));if(sm!==0)await tracked(ensureMap(sm));
@@ -1607,6 +1607,9 @@ function applyMapScene(){        // перестраивает карту, пл�
   if(decalRT)app.renderer.render(new PIXI.Container(),{renderTexture:decalRT,clear:true});
   mapSpr.texture=T[MAP.art]||T.map;
   buildDecor();
+  {const R=rnd(MAP.decor?MAP.decor.seed*7+3:5);                                      // разводы масла, подпалины и следы протекторов — «жизнь» земли
+   for(let k=0;k<26;k++){const x=R()*COLS,y=R()*ROWS;stamp(T.smoke,x,y,.5+R()*1.3,k%3?0x1a1410:0x3a2a1a,.05+R()*.09,R()*6);}
+   for(let k=0;k<7;k++){const x=R()*COLS,y=R()*ROWS,a=R()*6.28;for(let q=0;q<9;q++)stamp(T.glow,x+Math.cos(a)*q*.11,y+Math.sin(a)*q*.11,.06,0,.1);}}
   L.slots.removeChildren();
   SLOTS.forEach(s=>{const ao=spr(T.glow,CELL*1.5,CELL*1.5);ao.tint=0;ao.alpha=.28;ao.position.set((s[0]+.5)*CELL+5,(s[1]+.5)*CELL+8);L.slots.addChild(ao);});
   SLOTS.forEach(s=>{const p=spr(T['slot_'+MAP.id]||T.slot,CELL,CELL);p.position.set((s[0]+.5)*CELL,(s[1]+.5)*CELL);L.slots.addChild(p);});
@@ -1651,6 +1654,7 @@ function makeTowerObj(i,t){
     }
     if(key==='tes'){o.idle=spr(T.glow,CELL*1.0,CELL*1.0);o.idle.tint=0x7fd6ff;o.idle.blendMode=ADD;o.idle.alpha=.2;c.addChildAt(o.idle,o.head?c.getChildIndex(o.head):c.children.length);}
     if(key==='gen'){o.glow=spr(T.glow,CELL*1.4,CELL*1.4);o.glow.tint=0xffd24a;o.glow.blendMode=ADD;c.addChild(o.glow);}
+    if(lv>=2){o.lvg=spr(T.glow,CELL*(lv===3?1.45:1.2),CELL*(lv===3?1.45:1.2));o.lvg.tint=lv===3?(t.br==='b'?0x7fd6ff:0xffc050):0xe8c890;o.lvg.blendMode=ADD;o.lvg.alpha=lv===3?.3:.12;c.addChildAt(o.lvg,1);}   // ореол уровня: 2 — тёплый, 3 — золотой или голубой (ветка)
     o.up=spr(T.glow,CELL*1.5,CELL*1.5);o.up.tint=0x7fe36a;o.up.blendMode=ADD;o.up.alpha=0;c.addChild(o.up);   // вспышка при улучшении
     if(lv>1){                                                                                                // значки уровня (шевроны на тёмной подложке)
       const pg=new PIXI.Graphics(),bc=t.br==='b'?0x7fd6ff:0xffd24a;
@@ -1681,6 +1685,7 @@ function syncTowers(){
       if(age<.5){const k=age<.28?.5+age/.28*.68:1.18-(age-.28)/.22*.18;o.c.scale.set(k);o.c.alpha=Math.min(1,age*6);}
       else{o.c.scale.set(1);o.c.alpha=1;t.born=null;}}
     if(o.idle)o.idle.alpha=.16+.1*Math.sin(G.t*6+i*2)+(t.rec>0?.3:0);
+    if(o.lvg&&o.lv===3)o.lvg.alpha=.22+.12*Math.sin(G.t*3+i);
     if(o.up)o.up.alpha=t.upAt!=null?Math.max(0,1-(G.t-t.upAt)/.7)*.9:0;
     if(o.head){
       const rec=t.rec>0?Math.min(1,t.rec/.14):0;
@@ -1715,26 +1720,34 @@ const WHEELS={
   sniper:[[17,33,11,3.5],[51,33,12,3.5],[17,86.5,11,3.5],[52,86.5,11,3.5]],
   medic:[[16.7,20,12.2,5.5],[40.8,20,8.5,5.5],[65.5,23.3,14,4.7],[18,75.5,16,5],[66,75,13.5,5.7]],
   boss:[[20.8,19.5,10.5,4.5],[34.2,19.5,11.8,4.5],[59.5,22.5,13,4],[20.8,77,13.4,5],[34.2,77.5,11.8,4.5],[59.5,76,13,3.5]]};
+const SKINSZ={boss_city:[2.2,1.11]};
+const RUNF={};
+function runFrames(n){                                                           // кадры бега из атласа 4×1 (смертник, шестовик)
+  if(RUNF[n]!==undefined)return RUNF[n];const bt=T[n+'_run'];if(!bt)return null;
+  const w=bt.width/4;return RUNF[n]=[0,1,2,3].map(i=>new PIXI.Texture(bt.baseTexture,new PIXI.Rectangle(Math.round(i*w),0,Math.round(w),bt.height)));
+}
 function makeEnemyObj(e){
   const c=new PIXI.Container();
-  const sk=EN[e.type].skin||e.type,a=ART[sk]||[1.9,1.9];                                // у червя свой спрайт (assets/worm)
+  const sk=EN[e.type].skin||(e.type==='boss'&&MAP.id==='city'&&T.boss_city?'boss_city':e.type),a=ART[sk]||SKINSZ[sk]||[1.9,1.9];
+  const fr=runFrames(e.type);                                // у червя свой спрайт (assets/worm)
   const aura=spr(T.glow,CELL*1.5,CELL*1.5);aura.blendMode=ADD;aura.alpha=e.aff?.55:0;aura.tint=e.aff?AFF[e.aff].tint:0xffffff;aura.visible=!!e.aff;   // свечение элитного врага
   if(e.aff)c.scale.set(e.aff==='tough'?1.2:1.08);
-  const sh=spr(T[sk],a[0]*CELL,a[1]*CELL);sh.tint=0;sh.alpha=.38;sh.position.set(.06*CELL,.09*CELL);
+  const sh=spr(fr?fr[0]:T[sk],a[0]*CELL,a[1]*CELL);sh.tint=0;sh.alpha=.38;sh.position.set(.06*CELL,.09*CELL);
   const bodyC=new PIXI.Container();
-  const body=spr(T[sk],a[0]*CELL,a[1]*CELL);
+  const body=spr(fr?fr[0]:T[sk],a[0]*CELL,a[1]*CELL);
   const lamp=new PIXI.Sprite(T.cone);lamp.anchor.set(0,.5);lamp.blendMode=ADD;
   lamp.x=a[0]*CELL*.42;lamp.width=CELL*(isB(e.type)?1.6:1.1);lamp.height=CELL*.6;
   lamp.tint=isB(e.type)?0xff5a28:0xffe2a0;lamp.alpha=.5;
-  const fl=spr(T[sk],a[0]*CELL,a[1]*CELL);fl.blendMode=ADD;fl.alpha=0;
+  const fl=spr(fr?fr[0]:T[sk],a[0]*CELL,a[1]*CELL);fl.blendMode=ADD;fl.alpha=0;
   if(EN[e.type].skin)lamp.visible=false;
   const trs=[],Wd=a[0]*CELL,Hd=a[1]*CELL;
-  for(const r of(WHEELS[e.type]||[])){
+  for(const r of(WHEELS[sk==='boss_city'?'none':e.type]||[])){
     const t=new PIXI.TilingSprite(T.tread,r[2]/100*Wd,r[3]/100*Hd);
     t.position.set(r[0]/100*Wd-Wd/2,r[1]/100*Hd-Hd/2);t.tileScale.set(1.3);t.alpha=.6;trs.push(t);
   }
   bodyC.addChild(body,...trs,lamp,fl);
-  let ov=null;if(e.aff){{const k=(e.aff==='boom'||e.aff==='cmd')?.78:e.aff==='swift'?1:1.08;ov=spr(T[AFF[e.aff].ov],a[0]*CELL*k,a[0]*CELL*k);}bodyC.addChild(ov);}   // наложенный силуэт элиты: плиты, баллоны, бочки или знамя
+  let ov=null;if(e.aff){const cf={tough:[1,1],swift:[.95,1.05],boom:[null,.85],cmd:[.75,null]}[e.aff],tx=T[AFF[e.aff].ov],ar=tx.width/tx.height;   // наложенный силуэт элиты: плиты, баллоны, бочки или барабаны со знаменем
+    let w=cf[0]!=null?a[0]*CELL*cf[0]:null,h=cf[1]!=null?a[1]*CELL*cf[1]:null;if(w==null)w=h*ar;if(h==null)h=w/ar;ov=spr(tx,w,h);bodyC.addChild(ov);}
   const spark=spr(T.glow,CELL*.5,CELL*.5);spark.tint=0xffd070;spark.blendMode=ADD;spark.visible=false;
   spark.x=a[0]*CELL*.5;bodyC.addChild(spark);
   const st=new PIXI.Graphics();
@@ -1746,7 +1759,7 @@ function makeEnemyObj(e){
   c.addChild(aura,sh,bodyC,st,bar);
   let tag=null;if(e.aff){tag=new PIXI.Text(AFF[e.aff].n,{fontFamily:'Trebuchet MS, Arial',fontSize:20,fontWeight:'bold',fill:AFF[e.aff].col,stroke:'#000',strokeThickness:5,lineJoin:'round'});tag.anchor.set(.5);tag.y=bar.y-18;c.addChild(tag);}
   L.enemies.addChild(c);
-  return {c,aura,ov,tag,rot:EN[e.type].rot||0,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
+  return {c,fr,fi:0,aura,ov,tag,rot:EN[e.type].rot||0,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
 }
 function syncEnemies(){
   const seen=new Set();
@@ -1756,6 +1769,7 @@ function syncEnemies(){
     o.c.position.set(e.x*CELL,e.y*CELL);
     o.bodyC.rotation=e.a+o.rot+Math.sin(G.t*9+e.ph)*.012;o.sh.rotation=e.a+o.rot;
     {const k=1+(Math.min(1,G.wave/NWAVES))*.9;o.sh.position.x=.06*CELL*k;o.sh.position.y=.09*CELL*k;}   // тень удлиняется к закату
+    if(o.fr){const i=e.cling!=null||e.jump?1:Math.floor(e.d*(e.type==='warboy'?5.5:4.5))%4;if(i!==o.fi){o.fi=i;o.body.texture=o.fr[i];o.sh.texture=o.fr[i];o.fl.texture=o.fr[i];}}   // кадры бега привязаны к пройденному пути
     o.c.alpha=e.sub?.3:1;if(o.aura.visible)o.aura.alpha=.4+.2*Math.sin(G.t*5+e.ph);
     {const k=(e.flash>0?1.045:1)*(1+(e.air||0)*.35);o.bodyC.scale.set(o.bodyC.scale.x+(k-o.bodyC.scale.x)*.5);}   // «встряска» от попадания, увеличение в прыжке
     o.bodyC.y=Math.sin(G.t*12+e.ph)*(isB(e.type)?1.5:2.2);          // лёгкая тряска подвески

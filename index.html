@@ -121,6 +121,18 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 .pips{display:inline-flex;gap:3px;vertical-align:middle;margin-left:4px}
 .pips i{width:12px;height:12px;border-radius:3px;background:#2a1c10;border:1px solid #6b4a2a;display:inline-block}
 .pips i.on{background:linear-gradient(#ffd070,#e0801a);border-color:#ffe9a0;box-shadow:0 0 6px #ff9a2a88}
+
+/* ---- нарисованные кнопки, рамки и логотип (включаются классом .art, если картинки загрузились) ---- */
+.scr h1 img{width:230px;max-width:70%;height:auto;filter:drop-shadow(0 4px 10px #000c) drop-shadow(0 0 18px #ff7a1a66);animation:logoglow 4s ease-in-out infinite}
+@keyframes logoglow{50%{filter:drop-shadow(0 4px 10px #000c) drop-shadow(0 0 30px #ff9a2acc)}}
+.art .scr button,.art #bot button{border:14px solid transparent;border-image:var(--btn-orange) 40 fill/14px stretch;background:none;box-shadow:none;border-radius:0;padding:2px 8px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.65));text-shadow:0 1px 3px #000,0 0 6px #000a}
+.art .scr button.alt,.art #bot button.alt{border-image:var(--btn-gray) 40 fill/14px stretch}
+.art .scr button:active,.art #bot button:active{transform:translateY(2px);filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
+.art .scr button:disabled,.art #bot button:disabled{filter:grayscale(.7) drop-shadow(0 3px 3px rgba(0,0,0,.65))}
+.art .scr #mPlay{animation:none;filter:drop-shadow(0 3px 3px rgba(0,0,0,.65)) drop-shadow(0 0 14px #ff8a2a99)}
+.art .scr button.mapb,.art .scr button.alt.mapb{border:12px solid transparent;border-image:var(--btn-gray) 40/12px stretch;height:96px;background-size:cover;background-position:center}
+.art .scr .card{border:22px solid transparent;border-image:var(--ui-panel-frame) 72 fill/22px stretch;background:none;box-shadow:none;padding:2px 4px;border-radius:0}
+.art .scr .card.off{opacity:.65}
 /* ---- кнопка риска ---- */
 #riskBtn{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:3;min-width:0;width:min(92%,330px);align-items:center;gap:10px;text-align:left;padding:7px 14px;font-size:16px;letter-spacing:.5px;background:linear-gradient(#d4421e,#7a1a0a 60%,#5a1206);border:2px solid #ff9a5a;border-radius:14px;box-shadow:inset 0 1px 0 #ffffff50,0 3px 0 #2a0a04,0 0 18px #ff4a1ecc;animation:riskp 1.5s ease-in-out infinite}
 #riskBtn .ri{font-size:30px;line-height:1;filter:drop-shadow(0 0 6px #ffb347)}
@@ -159,7 +171,7 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 
   <div class="scr" id="sMenu" style="display:flex">
     <img id="mHero" alt="" style="display:none">
-    <h1>БЕНЗАК</h1><div class="sub">Война за бензак</div>
+    <h1><img id="logoImg" alt="БЕНЗАК" style="display:none"><span id="logoTxt">БЕНЗАК</span></h1><div class="sub">Война за бензак</div>
     <button id="mPlay">Играть</button>
     <button id="mNew" class="alt" style="display:none">Начать сначала</button>
     <button id="mModes" class="alt">Режимы</button>
@@ -192,6 +204,11 @@ button:not(:disabled):hover{filter:brightness(1.1)}
   if(a&&a.menu_boss)h.src=a.menu_boss;
   else{h.onerror=function(){h.onerror=null;h.src='assets/menu_boss.jpg';};h.src='assets/menu_boss.webp';}
   document.documentElement.style.setProperty('--panel','url('+((a&&a.ui_panel)||'assets/ui_panel.jpg')+')');
+  var L=document.getElementById('logoImg');L.onload=function(){L.style.display='inline-block';document.getElementById('logoTxt').style.display='none';};
+  L.src=(a&&a.logo)||'assets/logo.webp';
+  /* нарисованные кнопки и рамки: класс art включает их, только если картинки загрузились */
+  var rs=document.documentElement,need=['btn_orange','btn_gray','ui_panel_frame'],ok=0;
+  need.forEach(function(n){var u=(a&&a[n])||('assets/'+n+'.webp'),im=new Image();im.onload=function(){rs.style.setProperty('--'+n.replace(/_/g,'-'),'url('+u+')');if(++ok===need.length)rs.classList.add('art');};im.src=u;});
   document.querySelectorAll('img[data-ui]').forEach(function(i){var n='ui_'+i.dataset.ui;
     if(a&&a[n]){i.src=a[n];return;}
     i.onerror=function(){i.onerror=null;i.src='assets/'+n+'.png';};i.src='assets/'+n+'.webp';});})();
