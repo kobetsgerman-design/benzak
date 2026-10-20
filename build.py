@@ -17,7 +17,7 @@ for f in pat(['*.webp'], ['props', '*.webp'], ['*.png'], ['*.jpg'], ['props', '*
     mime = {'.m4a': 'audio/mp4', '.jpg': 'image/jpeg', '.webp': 'image/webp'}.get(ext, 'image/png')
     assets[name] = 'data:%s;base64,' % mime + base64.b64encode(open(f, 'rb').read()).decode()
 inline = '<script>window.__ASSETS=%s;</script>\n<script>%s</script>\n<script>%s</script>' % (json.dumps(assets), pixi, game)
-marker = '<script src="lib/pixi.min.js"></script>\n<script src="game.js"></script>'
+marker = '<script src="lib/pixi.min.js"></script>\n<script src="game.js?v=2"></script>'
 assert marker in html
 out = html.replace(marker, inline)
 dst = sys.argv[1] if len(sys.argv) > 1 else os.path.join(here, '..', 'Benzak.html')

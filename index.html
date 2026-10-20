@@ -63,6 +63,9 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 #nextw{flex:1;display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;font-size:13px;color:#cdb68a;min-width:0}
 #nextw .nl{color:#9d8a68;flex:none}#nextw .nl.hint{color:#ff9a6a;font-weight:bold}
 #nextw .nl b{color:#ffcf6a}
+.chip.elite{border-color:#ffd070;color:#ffd070;background:#3a280a99;font-weight:bold}
+.chip.risk{cursor:pointer;color:#ffb08a;border-color:#a2442a;background:#3a120a99;padding:2px 8px;font:bold 12px inherit;font-family:inherit}
+.chip.risk.on{background:#a2442a;color:#fff0d8;box-shadow:0 0 8px #ff5a3a99}
 .chip{display:flex;align-items:center;gap:3px;background:#0007;border:1px solid #5a4630;border-radius:8px;padding:1px 6px 1px 3px;flex:none}
 .chip.boss{border-color:#ff5a3a;background:#3a0e0699}
 .chip img{height:22px;max-width:34px;object-fit:contain}
@@ -94,6 +97,9 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 #sheet button.tc small{display:block;font-weight:normal;font-size:11px;color:#f0d9b0;opacity:.95}
 .row2{display:flex;gap:8px;width:100%;max-width:300px}
 .scr .row2 button{flex:1;min-width:0;font-size:16px}
+#stImg{width:100%;max-width:300px;height:150px;border-radius:12px;overflow:hidden;border:2px solid #5a4630;box-shadow:0 4px 14px #000a}
+#stImg img{width:100%;height:100%;object-fit:cover;object-position:center 30%;filter:saturate(.9) brightness(.8)}
+#stTxt{max-width:340px;text-align:center;line-height:1.45;font-size:15px}
 #dailyCard{text-align:center;line-height:1.35}
 #dailyCard button{margin-top:8px}
 /* ---- звёзды, достижения ---- */
@@ -104,6 +110,25 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 #toast b{color:#ffcf6a}
 #toast.show{animation:tst 3.4s ease forwards}
 @keyframes tst{0%{opacity:0;transform:translate(-50%,-30px)}10%{opacity:1;transform:translate(-50%,0)}85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-20px)}}
+
+/* ---- нарисованные звёзды, анимации ---- */
+.st{width:34px;height:34px;object-fit:contain;filter:grayscale(1) brightness(.4) drop-shadow(0 1px 1px #000);margin:0 2px;vertical-align:middle}
+.st.on{filter:drop-shadow(0 0 7px #ff9a2a) drop-shadow(0 2px 1px #000);animation:starpop .55s cubic-bezier(.2,1.6,.4,1) both}
+.st.mini{width:24px;height:24px;margin:0;animation:none;flex:none}
+.mapb .st{width:18px;height:18px;animation:none}
+.stars{display:block;margin:4px 0}
+@keyframes starpop{0%{transform:scale(0) rotate(-40deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+.card.ach{display:flex;align-items:center;gap:10px}
+.card.ach span{line-height:1.3}
+.card.ach:not(.on){opacity:.7}
+#hScrap.pop{animation:numpop .35s ease}#hFuel.hit{animation:numhit .5s ease}
+@keyframes numpop{40%{transform:scale(1.35);color:#fff0a0}}
+@keyframes numhit{20%{transform:scale(1.4);color:#ff5a3a}40%{transform:translateX(-3px)}60%{transform:translateX(3px)}}
+#mPlay{animation:breath 2.6s ease-in-out infinite}
+@keyframes breath{50%{box-shadow:inset 0 1px 0 #ffddb050,inset 0 -3px 0 #0003,0 3px 0 #2f1306,0 0 22px #ff8a2acc}}
+.scr h1{animation:ttl 4s ease-in-out infinite}
+@keyframes ttl{50%{text-shadow:0 3px 0 #7a2c08,0 6px 0 #3a1204,0 0 44px #ff8a20aa}}
+.scr .card{box-shadow:0 3px 8px #0008,inset 0 1px 0 #ffffff14}
 </style>
 </head>
 <body>
@@ -126,6 +151,7 @@ button:not(:disabled):hover{filter:brightness(1.1)}
     <button id="mAch" class="alt">Достижения</button>
     <div id="mBest" class="sub"></div>
   </div>
+  <div class="scr" id="sStory"><div id="stImg"></div><h2 id="stT"></h2><div id="stTxt" class="card"></div><button id="stGo">В бой</button></div>
   <div class="scr" id="sMode"><h2>Режимы</h2><div class="card" id="dailyCard" style="width:100%;max-width:340px"></div><div class="sub">Бесконечный режим: держитесь как можно дольше</div><div id="endBtns" style="display:grid;gap:8px;width:100%;max-width:340px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sMeta"><h2>Мастерская</h2><div id="metaTok" class="sub"></div><div id="metaList" style="display:grid;gap:8px;width:100%;max-width:400px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sPerk"><h2>Выберите улучшение</h2><div class="sub">действует до конца этой карты</div><div id="perkList" style="display:grid;gap:10px;width:100%;max-width:400px"></div></div>
@@ -140,7 +166,7 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 
 <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#120a06;color:#ffb347;font:bold 20px sans-serif;z-index:99">Загрузка…</div>
 <script src="lib/pixi.min.js"></script>
-<script src="game.js"></script>
+<script src="game.js?v=2"></script>
 <script>
 /* картинка босса на заставке и значки интерфейса: из встроенных ассетов (Benzak.html) или assets/*.webp, при ошибке — PNG/JPG */
 (function(){var h=document.getElementById('mHero'),a=window.__ASSETS;
