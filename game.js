@@ -10,7 +10,7 @@ const MAPS=[
   {id:'wasteland',n:'Пустошь',art:'map',
    WP:[[0,0],[0,1],[5,1],[5,3],[0,3],[0,5],[5,5],[5,7],[0,7],[0,9]],
    SLOTS:[[0,2],[1,2],[2,2],[3,2],[2,4],[3,4],[4,4],[5,4],[0,6],[1,6],[2,6],[3,6],[1,8],[2,8],[1,9],[2,9],[2,0],[3,0]],
-   hp:1,cnt:1,start:100,bonus:20,dark:[.10,.34],dk:[0x1a0e18,0x3a0c0c],warm:0xfff1de,vig:.5,dust:0xc89a62,
+   hp:1,cnt:1,start:115,bonus:25,dark:[.10,.34],dk:[0x1a0e18,0x3a0c0c],warm:0xfff1de,vig:.5,dust:0xc89a62,
    amb:{n:20,a:.12,tint:0xffffff,spd:1,dir:'x',w:40,h:14},grade:[.12,.08,1.0],
    decor:{set:'wasteland',seed:11,dens:.8,items:[
      {i:1,w:2,sz:.62,k:'rock',fx:'fire',max:2},{i:2,w:2,sz:.58,k:'rock'},{i:3,w:1,sz:1.0,k:'wreck',max:2},
@@ -19,7 +19,7 @@ const MAPS=[
   {id:'dunes',n:'Дюны',art:'map_dunes',
    WP:[[5,0],[5,2],[1,2],[1,4],[4,4],[4,6],[0,6],[0,8],[3,8],[3,9]],
    SLOTS:[[4,1],[2,1],[3,1],[2,3],[3,3],[4,3],[0,3],[1,5],[2,5],[3,5],[5,4],[1,7],[2,7],[3,7],[2,9],[4,8]],
-   hp:.92,cnt:.96,start:105,bonus:20,dark:[.05,.30],dk:[0x20120a,0x2a0c3a],warm:0xfff4dc,vig:.4,dust:0xe6c98a,
+   hp:.82,cnt:.88,start:125,bonus:26,dark:[.05,.30],dk:[0x20120a,0x2a0c3a],warm:0xfff4dc,vig:.4,dust:0xe6c98a,
    amb:{n:34,a:.2,tint:0xffe6b0,spd:12,dir:'x',w:70,h:6},grade:[.08,.1,1.04],
    decor:{set:'dunes',seed:7,dens:.72,items:[
      {i:1,w:3,sz:.62,k:'rock'},{i:2,w:3,sz:.46,k:'rock'},{i:3,w:3,sz:.34,k:'pebble'},
@@ -28,7 +28,7 @@ const MAPS=[
   {id:'city',n:'Руины города',art:'map_city',
    WP:[[0,0],[0,3],[2,3],[2,1],[4,1],[4,5],[1,5],[1,7],[5,7],[5,9],[2,9]],
    SLOTS:[[1,1],[1,2],[3,2],[3,3],[1,4],[2,4],[3,4],[2,6],[3,6],[4,6],[1,8],[2,8],[3,8],[5,2],[5,5],[1,0]],
-   hp:1.2,cnt:1.15,start:80,bonus:15,dark:[.16,.42],dk:[0x0c1224,0x040818],warm:0xeaf0ff,vig:.6,dust:0x8a929c,
+   hp:1.15,cnt:1.1,start:100,bonus:22,dark:[.16,.42],dk:[0x0c1224,0x040818],warm:0xeaf0ff,vig:.6,dust:0x8a929c,
    amb:{n:46,a:.2,tint:0xb8d0ff,spd:.9,dir:'y',w:3,h:64},grade:[-.04,.14,.98],
    decor:{set:'city',seed:5,dens:.85,items:[
      {i:1,w:2,sz:.78,k:'rock'},{i:2,w:3,sz:1.15,k:'rock',max:5},{i:3,w:1,sz:.95,k:'wreck',max:3},
@@ -38,7 +38,7 @@ const MAPS=[
 MAPS.push({id:'port',n:'Нефтяной порт',art:'map_port',
    WP:[[2,0],[2,2],[5,2],[5,4],[1,4],[1,6],[4,6],[4,8],[0,8],[0,9]],
    SLOTS:[[1,1],[3,1],[4,1],[1,3],[2,3],[3,3],[4,3],[2,5],[3,5],[4,5],[5,5],[1,7],[2,7],[3,7],[1,9],[2,9],[3,9]],
-   hp:1.3,cnt:1.2,start:95,bonus:18,dark:[.18,.44],dk:[0x08141c,0x02060c],warm:0xe4f2ff,vig:.6,dust:0x8a9aa6,
+   hp:1.08,cnt:1.04,start:125,bonus:26,dark:[.18,.44],dk:[0x08141c,0x02060c],warm:0xe4f2ff,vig:.6,dust:0x8a9aa6,
    amb:{n:30,a:.15,tint:0xb8c8d4,spd:.6,dir:'x',w:90,h:12},grade:[-.02,.12,.98],
    decor:{set:'port',seed:9,dens:.8,items:[
      {i:1,w:2,sz:1.1,k:'rock',max:3},{i:2,w:2,sz:1.1,k:'rock',max:3},{i:3,w:3,sz:.58,k:'rock',fx:'fire',max:2},{i:3,w:2,sz:.58,k:'rock'},
@@ -46,7 +46,7 @@ MAPS.push({id:'port',n:'Нефтяной порт',art:'map_port',
      {i:8,w:1,sz:.62,k:'rock',max:2},{i:9,w:2,sz:.5,k:'rock'},{i:10,w:1,sz:.85,k:'wreck',max:2},{i:11,w:1,sz:1.1,k:'rock',max:2}]}});
 let MI=0,MAP=MAPS[0],WP=MAP.WP,SLOTS=MAP.SLOTS,PTS=[],SEG=[],TOT=0,NB=[],EXIT=[0,9],FLEN=1,FA=0;
 /* общий подъём сложности: ×1,22 к здоровью и ×1,22 к числу врагов ≈ +50% к общему запасу здоровья волны */
-const DIFF={hp:1.22,cnt:1.22};
+const DIFF={hp:1.12,cnt:1.12};
 /* режимы: 'camp' — кампания (12 волн), 'endless' — бесконечный (после 12-й волны повторяются поздние волны, растущие в числе),
    'daily' — испытание дня: карта и условие определяются датой, без мастерской, враги и случайности по общему зерну */
 const MODS=[
@@ -109,7 +109,7 @@ const AFF={                                                                     
   tough:{n:'Броневая плита',tint:0xffd070,col:'#ffd070',d:'пока цела плита, урон резко слабее; без неё враг ускоряется',ov:'el_plate'},
   boom:{n:'Подрывник',tint:0xff6a4a,col:'#ff6a4a',d:'при гибели или прорыве взрывается; при <35% здоровья несётся напролом',ov:'el_barrel'},
   cmd:{n:'Командир',tint:0xb48cff,col:'#c9a8ff',d:'союзники рядом быстрее и получают на 20% меньше урона',ov:'el_banner'}};
-const eliteN=n=>n>=3?Math.min(G&&G.mode==='endless'?20:8,Math.floor((n-1)/2)):0;
+const eliteN=n=>n>=3?Math.min(G&&G.mode==='endless'?20:8,Math.floor((n-1)/2.6)):0;
 const EN={
   raider:{hp:40,sp:1.3,leak:1,rew:3,reach:0},
   biker:{hp:25,sp:2.2,leak:1,rew:3,reach:0},
@@ -706,14 +706,14 @@ function step(dt){
       }
       if(E.kami){                                                          // смертник: подрыв у ближайшей башни
         let tg=-1,bd=1e9;SLOTS.forEach((sl,i)=>{const t=G.slots[i];if(!t||t.rubble)return;const dd=Math.hypot(sl[0]+.5-e.x,sl[1]+.5-e.y);if(dd<1.15&&dd<bd){bd=dd;tg=i;}});
-        if(tg>=0){const t=G.slots[tg];t.hp-=18;boom(e.x,e.y,1.1);G.shake=Math.max(G.shake,.12);sfx('boom');e.dead=true;e.leaked=true;if(t.hp<=0){t.hp=0;destroyTower(tg);}continue;}
+        if(tg>=0){const t=G.slots[tg];t.hp-=14;boom(e.x,e.y,1.1);G.shake=Math.max(G.shake,.12);sfx('boom');e.dead=true;e.leaked=true;if(t.hp<=0){t.hp=0;destroyTower(tg);}continue;}
       }
       if(E.vault){                                                         // шестовик: прыжок на башню, затем рубит её
         if(e.cling!=null){
           const t=G.slots[e.cling];
           if(!t||t.rubble){e.cling=null;const p=pathPos(e.d);e.x=p.x;e.y=p.y;e.a=p.a;e.vc=3;}
           else{const sl=SLOTS[e.cling];e.x=sl[0]+.5+Math.cos(e.ph)*.14;e.y=sl[1]+.5+Math.sin(e.ph)*.14;e.atk=true;
-            t.hp-=14*dt/(1+.3*(lvOf(t)-1));if(Math.random()<dt*14)sparks(e.x,e.y,1,'#ffd070',2.2,null,0,3);if(Math.random()<dt*5)sfx('clang');
+            t.hp-=11*dt/(1+.3*(lvOf(t)-1));if(Math.random()<dt*14)sparks(e.x,e.y,1,'#ffd070',2.2,null,0,3);if(Math.random()<dt*5)sfx('clang');
             if(t.hp<=0){t.hp=0;destroyTower(e.cling);e.cling=null;const p=pathPos(e.d);e.x=p.x;e.y=p.y;e.a=p.a;e.vc=3;}continue;}
         }else if(e.jump){
           e.jt-=dt;const k=1-Math.max(0,e.jt)/e.jd;e.x=e.jx0+(e.jx1-e.jx0)*k;e.y=e.jy0+(e.jy1-e.jy0)*k;e.air=Math.sin(Math.PI*k);
