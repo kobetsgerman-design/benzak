@@ -36,6 +36,8 @@ const MAPS=[
      {i:7,w:1,sz:.5,k:'rock',max:3},{i:8,w:1,sz:.5,k:'rock',max:3},{i:9,w:1,sz:.5,k:'rock',max:3},
      {i:10,w:1,sz:.55,k:'rock',max:2},{i:11,w:3,sz:.5,k:'pebble'}]}}];
 let MI=0,MAP=MAPS[0],WP=MAP.WP,SLOTS=MAP.SLOTS,PTS=[],SEG=[],TOT=0,NB=[],EXIT=[0,9],FLEN=1,FA=0;
+/* общий подъём сложности: ×1,22 к здоровью и ×1,22 к числу врагов ≈ +50% к общему запасу здоровья волны */
+const DIFF={hp:1.22,cnt:1.22};
 const TT={
   mg:{n:'Пулемёт',cost:30,range:2.5,up:[25,45]},
   fl:{n:'Огнемёт',cost:50,range:2,up:[40,70]},
@@ -82,9 +84,9 @@ function statLine(t){
 const EN={
   raider:{hp:40,sp:1.3,leak:1,rew:3,reach:0},
   biker:{hp:25,sp:2.2,leak:1,rew:3,reach:0},
-  armor:{hp:120,sp:.8,leak:2,rew:10,reach:1,dps:15},
+  armor:{hp:120,sp:.8,leak:2,rew:10,reach:1,dps:20},
   shield:{hp:100,sp:.9,leak:2,rew:8,reach:0,arm:.35},       // щитовик: пулемёт и шипы бьют вдвое слабее, огонь — полностью
-  sniper:{hp:60,sp:1.0,leak:1,rew:7,reach:2.0,dps:6},
+  sniper:{hp:60,sp:1.0,leak:1,rew:7,reach:2.0,dps:9},
   drone:{hp:45,sp:1.6,leak:1,rew:5,reach:0,fly:true},       // дрон летит напрямик; огнемёт, шипы и миномёт его не достают
   medic:{hp:80,sp:.85,leak:1,rew:9,reach:0,heal:6},         // лекарь чинит врагов вокруг, пока не оглушён     // штурмовик: останавливается и стреляет по башням издалека
   boss:{hp:900,sp:.5,leak:10,rew:100,reach:2,dps:28}};
@@ -239,6 +241,7 @@ function sfx(k,x){
   else if(k==='leak'){tone(150,.45,'sawtooth',.1,60,t);tone(113,.45,'square',.04,45,t,.2);}
   else if(k==='wave'){tone(98,.9,'sawtooth',.09,92,t,.3);tone(147,.9,'sawtooth',.06,139,t,.3);noise(.5,.05,300,'lowpass',t);}
   else if(k==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,.5,'triangle',.08,f,t+i*.14,.3));}
+  else if(k==='worm'){noise(1.8,.3,170,'lowpass',t,.2,60);tone(48,2,'sine',.22,28,t,.1);noise(1.1,.16,520,'bandpass',t+1.5,.25,180,.8);tone(85,1.1,'sawtooth',.05,38,t+1.5,.3);}
   else if(k==='lose'){tone(220,1.2,'sawtooth',.12,50,t);noise(1,.14,300,'lowpass',t);}
   PAN=0;
 }
@@ -409,7 +412,7 @@ function destroyTower(i){
 function startWave(){
   if(G.running||G.over||G.wave>=NWAVES)return;ac();
   const w=WAVES[G.wave];G.wave++;
-  const q=[];for(const k in w){const c=k==='boss'?w[k]:Math.round(w[k]*MAP.cnt);for(let n=0;n<c;n++)q.push(k);}
+  const q=[];for(const k in w){const c=k==='boss'?w[k]:Math.round(w[k]*MAP.cnt*DIFF.cnt);for(let n=0;n<c;n++)q.push(k);}
   for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]];}
   const bi=q.indexOf('boss');if(bi>=0){q.splice(bi,1);q.splice(Math.min(4,q.length),0,'boss');}
   G.spawnQ=q;G.spawnT=.5;G.running=true;updateWaveBtn();sfx('wave');
@@ -456,7 +459,7 @@ function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/г
   }
 }
 function makeEnemy(type,d){
-  const E=EN[type],hp=Math.round(E.hp*MAP.hp*(1+.05*(G.wave-1))),p=E.fly?{x:PTS[0][0],y:PTS[0][1],a:FA}:pathPos(d);
+  const E=EN[type],hp=Math.round(E.hp*MAP.hp*DIFF.hp*(1+.05*(G.wave-1))),p=E.fly?{x:PTS[0][0],y:PTS[0][1],a:FA}:pathPos(d);
   return {type,d,fly:!!E.fly,x:p.x,y:p.y,a:(d>0||E.fly)?p.a:Math.PI/2,hp,max:hp,slowT:0,slowAmt:0,burn:0,stun:0,vuln:0,flash:0,dead:false,atk:false,ph:Math.random()*6};
 }
 function step(dt){
@@ -795,7 +798,7 @@ const iconSrc=n=>(window.__ASSETS&&window.__ASSETS[n])||('assets/'+n+'.png');
 function nextWaveHTML(){
   if(G.wave>=NWAVES)return '';
   const w=WAVES[G.wave];let h='<span class="nl">Далее:</span>';
-  for(const k in w){const c=k==='boss'?w[k]:Math.round(w[k]*MAP.cnt);h+='<span class="chip'+(k==='boss'?' boss':'')+'"><img src="'+iconSrc(k)+'" alt="'+k+'"><b>×'+c+'</b></span>';}
+  for(const k in w){const c=k==='boss'?w[k]:Math.round(w[k]*MAP.cnt*DIFF.cnt);h+='<span class="chip'+(k==='boss'?' boss':'')+'"><img src="'+iconSrc(k)+'" alt="'+k+'"><b>×'+c+'</b></span>';}
   return h;
 }
 let abShown='';
@@ -1161,6 +1164,7 @@ async function loadArt(){
     if(!inl&&location.protocol==='file:')continue;
     tryLv.push(PIXI.Texture.fromURL(inl||('assets/'+n+'.png')).then(t=>{T[n]=t;real++;}).catch(()=>{}));
   }
+  {const inl=window.__ASSETS&&window.__ASSETS.worm;if(inl||location.protocol!=='file:')tryLv.push(PIXI.Texture.fromURL(inl||'assets/worm.png').then(t=>{T.worm=t;}).catch(()=>{}));}
   for(const m of MAPS){const n='slot_'+m.id,inl=window.__ASSETS&&window.__ASSETS[n];       // площадки под цвет карты
     if(!inl&&location.protocol==='file:')continue;
     tryLv.push(PIXI.Texture.fromURL(inl||('assets/'+n+'.png')).then(t=>{T[n]=t;}).catch(()=>{}));}
@@ -1188,7 +1192,7 @@ async function initRender(){
   world=new PIXI.Container();app.stage.addChild(world);
   const mk=n=>{const c=new PIXI.Container();world.addChild(c);L[n]=c;return c;};
   mapSpr=new PIXI.Sprite(T[MAP.art]||T.map);mapSpr.width=COLS*CELL;mapSpr.height=ROWS*CELL;world.addChild(mapSpr);
-  mk('decals');mk('props');mk('slots');mk('towers');mk('links');mk('enemies');mk('smoke');mk('fx');
+  mk('decals');mk('props');mk('worm');mk('slots');mk('towers');mk('links');mk('enemies');mk('smoke');mk('fx');
   decalRT=PIXI.RenderTexture.create({width:COLS*CELL/2,height:ROWS*CELL/2});
   decalSpr=new PIXI.Sprite(decalRT);decalSpr.scale.set(2);L.decals.addChild(decalSpr);
   stampS=new PIXI.Sprite(T.glow);stampS.anchor.set(.5);
@@ -1235,6 +1239,40 @@ function addWreck(e){
   const g=spr(T.glow,CELL*.9,CELL*.9);g.tint=0xff7a20;g.blendMode=ADD;
   c.addChild(b,g);L.decals.addChild(c);
   WR.push({c,b,g,born:G.t,max:e.type==='boss'?9:(e.type==='armor'||e.type==='shield')?5:3.2,x:e.x,y:e.y});
+}
+/* песчаный червь на «Дюнах»: чистый декор, без влияния на игру. Иногда выныривает на свободном месте, показывает пасть и уходит */
+const WORM={spots:[[0,0,1.25],[5.3,6.25,1.05],[.1,9.4,1.05],[4.5,9.4,1.05]],g:null,c:null,st:-1,next:0,r:1,rot:0};
+function wormUpdate(){
+  const on=G&&!G.over&&MAP.id==='dunes'&&T.worm&&L.worm;
+  if(!on){if(WORM.c)WORM.c.visible=false;return;}
+  if(!WORM.c||WORM.c.destroyed){
+    const c=new PIXI.Container(),pit=new PIXI.Sprite(T.glow),ring=new PIXI.Graphics(),sp=new PIXI.Sprite(T.worm);sp.anchor.set(.5);pit.anchor.set(.5);pit.tint=0x2b1c10;
+    c.addChild(pit,ring,sp);L.worm.addChild(c);Object.assign(WORM,{c,pit,ring,sp});
+    const mk=new PIXI.Graphics();mk.beginFill(0xffffff);mk.drawRect(0,0,COLS*CELL,ROWS*CELL);mk.endFill();world.addChild(mk);L.worm.mask=mk;   // не выходит за карту: у края червь выныривает «из-за кадра»
+  }
+  if(WORM.g!==G){WORM.g=G;WORM.st=-1;WORM.next=G.t+9+Math.random()*8;}
+  const c=WORM.c;
+  if(WORM.st<0){
+    c.visible=false;
+    if(G.t>=WORM.next){WORM.st=G.t;const s=WORM.spots[Math.floor(Math.random()*WORM.spots.length)];WORM.r=s[2];c.position.set((s[0]+.5)*CELL,(s[1]+.5)*CELL);WORM.rot=Math.random()*6.28;sfx('worm');}
+    return;
+  }
+  const T0=G.t-WORM.st,R=WORM.r*CELL;
+  if(T0>=9){WORM.st=-1;WORM.next=G.t+32+Math.random()*28;c.visible=false;return;}
+  c.visible=true;
+  const ease=u=>1-Math.pow(1-Math.max(0,Math.min(1,u)),3);                       // фазы: 0–1,6 гул и рябь, до 2,8 выныривает, до 6,6 держится, до 8,4 уходит
+  let k=0;if(T0>1.6&&T0<=6.6)k=ease((T0-1.6)/1.2);else if(T0>6.6)k=1-ease((T0-6.6)/1.8);
+  k=Math.max(0,Math.min(1,k));
+  const base=R/(.44*512);
+  WORM.sp.scale.set(base*(.12+.88*k)*(1+.02*Math.sin(G.t*3)));
+  WORM.rot+=.004;WORM.sp.rotation=WORM.rot;WORM.sp.alpha=Math.min(1,k*3);
+  WORM.pit.width=WORM.pit.height=R*2.7*(.5+.6*k);WORM.pit.alpha=.7*k;                       // мягкая тёмная впадина в песке под пастью
+  WORM.ring.clear();
+  const rp=u=>{if(u<=0||u>=1)return;WORM.ring.lineStyle(7*(1-u)+2,0xf1d9a2,.55*(1-u));WORM.ring.drawCircle(0,0,R*(.5+1.5*u));};
+  rp(T0/2.2);rp((T0-.5)/2.2);rp((T0-6.4)/2);                                      // рябь на песке при появлении и уходе
+  if(T0>1.2&&T0<7.4&&Math.random()<.5){const a=Math.random()*6.28,rr=WORM.r*(.7+Math.random()*.4);
+    G.parts.push({x:c.x/CELL+Math.cos(a)*rr,y:c.y/CELL+Math.sin(a)*rr,vx:Math.cos(a)*.35,vy:Math.sin(a)*.35-.25,life:1.1,max:1.1,k:'dust',t:0xe6c98a,a:.4,r:.07+Math.random()*.06});}
+  if(T0<1.8&&Math.random()<.2)G.shake=Math.max(G.shake||0,.06);
 }
 const PROPS=[];                     // живой декор карты: качающиеся кусты, дымящие остовы
 function buildDecor(){
@@ -1564,6 +1602,7 @@ function syncFx(){
   for(let i=ns;i<smokePool.length;i++)smokePool[i].visible=false;
   for(let i=ng;i<glowPool.length;i++)glowPool[i].visible=false;
 
+  wormUpdate();
   for(const p of PROPS){                              // ветер качает кусты и перекати-поле, остов дымит
     if(p.k==='sway'){const a=Math.sin(G.t*1.6+p.ph)*.06+Math.sin(G.t*.7+p.ph*2)*.03;p.sp.rotation=p.rot+a;p.sh.rotation=p.rot+a;}
     if(p.k==='wreck'&&Math.random()<.05)G.parts.push({x:p.x,y:p.y,vx:.12+Math.random()*.15,vy:-.35,life:1.7,max:1.7,c:'#1c1c1c',r:.07+Math.random()*.05});
@@ -1666,7 +1705,7 @@ function frameTick(){
   getGlow=poolSprite(glowPool,L.fx,T.glow,ADD);
   getDust=poolSprite(dustPool,L.fx,T.smoke,ADD);
   newGame();show('sMenu');
-  window.__benzak={get G(){return G;},save,MP,RUN,repair,repairCost,PERKS,META,openPerks,pickPerk,runCalc,EN,build,upgrade,useAbility,airStrike,BR,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
+  window.__benzak={get G(){return G;},WORM,save,MP,RUN,repair,repairCost,PERKS,META,openPerks,pickPerk,runCalc,EN,build,upgrade,useAbility,airStrike,BR,startWave,step,newGame,T,app,MAPS,WAVES,EN,get NW(){return NWAVES;}};
   const ld=document.getElementById('loading');if(ld)ld.remove();
 })();
 })();
