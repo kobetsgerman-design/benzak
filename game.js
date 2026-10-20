@@ -1673,7 +1673,15 @@ function syncTowers(){
 
 /* ---------- враги ---------- */
 /* колёса на спрайтах техники: [x,y,w,h] в % от размера спрайта (смотрит вправо); поверх рисуется бегущий протектор */
-const WHEELS={};                                                            // новые спрайты рисуют колёса сами; наложенный протектор не нужен
+/* колёса на спрайтах техники: [x,y,w,h] в % от кадра (машина смотрит вправо); поверх нарисованных колёс бежит протектор, скорость привязана к пройденному пути */
+const _AR=[[12.8,18.4,15.3,6],[29.6,18.4,15.1,6],[61.8,21,13.9,4.5],[12.8,75,15.3,6],[29.6,75,15.1,6],[61.8,74,13.9,5]];
+const WHEELS={
+  raider:[[20.4,22.5,14.9,10.8],[65.5,25,14,8],[19.7,68,15.6,9],[65.5,67.5,14.4,8.3]],
+  biker:[[74,45.6,21.5,7.5]],
+  armor:_AR,shield:_AR,
+  sniper:[[17,33,11,3.5],[51,33,12,3.5],[17,86.5,11,3.5],[52,86.5,11,3.5]],
+  medic:[[16.7,20,12.2,5.5],[40.8,20,8.5,5.5],[65.5,23.3,14,4.7],[18,75.5,16,5],[66,75,13.5,5.7]],
+  boss:[[20.8,19.5,10.5,4.5],[34.2,19.5,11.8,4.5],[59.5,22.5,13,4],[20.8,77,13.4,5],[34.2,77.5,11.8,4.5],[59.5,76,13,3.5]]};
 function makeEnemyObj(e){
   const c=new PIXI.Container();
   const sk=EN[e.type].skin||e.type,a=ART[sk]||[1.9,1.9];                                // у червя свой спрайт (assets/worm)
@@ -1690,7 +1698,7 @@ function makeEnemyObj(e){
   const trs=[],Wd=a[0]*CELL,Hd=a[1]*CELL;
   for(const r of(WHEELS[e.type]||[])){
     const t=new PIXI.TilingSprite(T.tread,r[2]/100*Wd,r[3]/100*Hd);
-    t.position.set(r[0]/100*Wd-Wd/2,r[1]/100*Hd-Hd/2);t.tileScale.set(1.3);t.alpha=.85;trs.push(t);
+    t.position.set(r[0]/100*Wd-Wd/2,r[1]/100*Hd-Hd/2);t.tileScale.set(1.3);t.alpha=.6;trs.push(t);
   }
   bodyC.addChild(body,...trs,lamp,fl);
   let ov=null;if(e.aff){{const k=(e.aff==='boom'||e.aff==='cmd')?.78:e.aff==='swift'?1:1.08;ov=spr(T[AFF[e.aff].ov],a[0]*CELL*k,a[0]*CELL*k);}bodyC.addChild(ov);}   // наложенный силуэт элиты: плиты, баллоны, бочки или знамя
@@ -1727,7 +1735,7 @@ function syncEnemies(){
     }
     if(e.fly){o.bodyC.y=-.2*CELL+Math.sin(G.t*6+e.ph)*3;o.sh.position.set(.2*CELL,.32*CELL);o.sh.alpha=.28;}
     o.fl.alpha=e.flash>0?.7:0;
-    for(const t of o.trs)t.tilePosition.x=e.d*CELL*.9;                  // протектор бежит с реальной скоростью
+    for(const t of o.trs)t.tilePosition.x=-e.d*CELL*.9;                  // протектор бежит с реальной скоростью
     const hf=e.hp/e.max;
     o.body.tint=hf<.25?0xa89888:hf<.5?0xcfc0b0:e.aff?AFF[e.aff].tint:0xffffff;                  // потёртая, закопчённая броня
     if(hf<.5&&Math.random()<.05)G.parts.push({x:e.x-Math.cos(e.a)*.25,y:e.y-Math.sin(e.a)*.25-.05,vx:(Math.random()-.5)*.2,vy:-.4,life:.9,max:.9,c:'#2a2623',r:.07+Math.random()*.04});
