@@ -14,6 +14,8 @@
 > - **Червь:** `worm.png` (512 px, пасть сверху) — декор на «Дюнах».
 > - **Музыка:** `music_battle.m4a`, `music_calm.m4a` (AAC, около 64 и 46 с); игра зацикливает их с перекрёстным затуханием.
 > - **WebP:** рядом с каждым PNG/JPG лежит одноимённый `.webp` (`tools/to_webp.js`); игра грузит его первым и откатывается на PNG/JPG, `build.py` встраивает только WebP. При замене картинки обновите и `.webp` (список — `tools/webp_manifest.json`).
+> - **Сюжет:** `story_0.webp`, `story_1.webp`, `story_2.webp` (вступления к картам) и `story_3.webp` (финал) — 1000 × 671, 3:2; исходники 2528 × 1696 в `assets_hf/story/`.
+> - **Враги 20.10.2026:** `raider`, `biker`, `armor`, `shield`, `sniper`, `drone`, `medic`, `boss` перерисованы (Nano Banana Pro, референс — броневик, `cutout`, кадр ×2: например `armor` 716 × 460). Размеры на карте — `ART` в `game.js`.
 > - Как получать арт и собирать файлы: `tools/make_new_art.sh`, `tools/make_sprites.sh`; промпты и порядок работы с SYNTX — в `HANDOFF.md`.
 
 ## Общие правила (важно для единого стиля)
