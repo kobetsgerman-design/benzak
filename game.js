@@ -358,7 +358,7 @@ function newGame(level,mode,cfg){
   if(level!=null&&level!==MI)setMap(level);
   try{resetScene();}catch(e){}
   G={perks:[],shield:0,scrap:MAP.start+6*((save.meta&&save.meta.start)||0),fuel:10,wave:0,running:false,over:false,overT:0,speed:1,slots:SLOTS.map(()=>null),
-     enemies:[],parts:[],floats:[],tracers:[],rings:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,slowT:0,alert:0,map:MI,dq:[],cd:{air:0,rep:0,emp:0},strikes:[],shells:[],aim:null};
+     enemies:[],parts:[],floats:[],tracers:[],rings:[],flips:[],spawnQ:[],spawnT:0,sel:-1,links:[],found:[],t:0,shake:0,slowT:0,alert:0,map:MI,dq:[],cd:{air:0,rep:0,emp:0},strikes:[],shells:[],aim:null};
   G.mode=mode||'camp';G.cfg=cfg||null;G.mod=(cfg&&cfg.mod)||null;
   if(G.mode==='daily'){G.rng=rnd(Math.imul(cfg.key,40503)>>>0);G.scrap=MAP.start;}
   if(G.mod)G.scrap+=G.mod.start||0;
@@ -476,6 +476,13 @@ function endWave(){
 }
 
 /* ---------- игровой цикл ---------- */
+const VFX={fr:{},pool:[]};
+function vfxFrame(sheet,i){                                                      // кадр листа 3×2 с отступом, чтобы не цеплять линии сетки
+  const k=sheet+i;if(VFX.fr[k])return VFX.fr[k];const bt=T['vfx_'+sheet];if(!bt)return null;
+  const cw=bt.width/3,ch=bt.height/2,ins=Math.round(cw*.014),c=i%3,r=Math.floor(i/3);
+  return VFX.fr[k]=new PIXI.Texture(bt.baseTexture,new PIXI.Rectangle(Math.round(c*cw)+ins,Math.round(r*ch)+ins,Math.round(cw)-2*ins,Math.round(ch)-2*ins));
+}
+function flip(o){if(!T.vfx_boom||G.flips.length>16)return;G.flips.push(Object.assign({age:0},o));}
 function sparks(x,y,n,c,v0,dir,spread,g){                            // искры: n штук, цвет, скорость, направление и разброс (0 = во все стороны)
   if(G.parts.length>600)return;
   for(let i=0;i<n;i++){const a=(dir==null?Math.random()*6.28:dir+(Math.random()-.5)*(spread||1.2)),v=v0*(.5+Math.random()*.8);
@@ -488,8 +495,9 @@ function boom(x,y,s){
   if(s>=1)G.rings.push({x,y,t:.55,max:.55,s:s*2.4,c:0xffffff,w:2});      // быстрая тонкая ударная волна
   G.dq.push({x,y,s:Math.min(1.3,.3+.25*s),a:.34});     // подпалина на земле
   G.parts.push({x,y,vx:0,vy:0,life:.2,max:.2,k:'fl',c:'#ffffff',r:.22+.13*s});       // белая вспышка
+  flip({x,y,sz:.9+.8*s,sheet:'boom',frames:[0,1,2,3,4,5],max:.75,rot:Math.random()*6.28});
   if(lim)return;
-  for(let i=0;i<5+4*s;i++){const a=Math.random()*6.28,v=.2+Math.random()*1.1*s;       // огненный шар
+  for(let i=0;i<(T.vfx_boom?2:5)+(T.vfx_boom?2:4)*s;i++){const a=Math.random()*6.28,v=.2+Math.random()*1.1*s;       // огненный шар
     G.parts.push({x:x+Math.cos(a)*.08,y:y+Math.sin(a)*.08,vx:Math.cos(a)*v,vy:Math.sin(a)*v-.15,life:.4+Math.random()*.4,max:.8,k:'fl',c:'#ff9a2a',r:.13+Math.random()*.1*(1+s*.4)});}
   for(let i=0;i<10+8*s;i++){const a=Math.random()*6.28,v=1.5+Math.random()*3.5*s;       // раскалённые искры с гравитацией
     G.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,g:5,life:.5+Math.random()*.6,max:1,c:'#ffd070',r:.02+Math.random()*.02});}
@@ -677,7 +685,7 @@ function step(dt){
         if(t.f.punct){t.shots++;if(t.shots%3===0)best.stun=1.5;}
         t.cd=1/(S.rate[li]*(t.br==='a'?1.5:1)*genK(t.f.rate,.2));
         G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.07,c:'#ffe9a0'});sfx('mg',cx);
-        sparks(cx+Math.cos(t.aim)*.42,cy+Math.sin(t.aim)*.42,2,'#ffe49a',3.4,t.aim,.7,2);if(Math.random()<.18)G.parts.push({x:cx+Math.cos(t.aim)*.45,y:cy+Math.sin(t.aim)*.45,vx:Math.cos(t.aim)*.5,vy:-.25,life:.6,max:.6,k:'dust',t:0xb8b0a4,a:.28,r:.05});
+        sparks(cx+Math.cos(t.aim)*.42,cy+Math.sin(t.aim)*.42,2,'#ffe49a',3.4,t.aim,.7,2);{const fi=Math.random()<.5?0:1;flip({x:cx+Math.cos(t.aim)*.42,y:cy+Math.sin(t.aim)*.42,sz:fi?.7:.55,sheet:'flash',frames:[fi],max:.07,rot:t.aim,ax:fi?.4:.5,fade:1});}if(Math.random()<.18)G.parts.push({x:cx+Math.cos(t.aim)*.45,y:cy+Math.sin(t.aim)*.45,vx:Math.cos(t.aim)*.5,vy:-.25,life:.6,max:.6,k:'dust',t:0xb8b0a4,a:.28,r:.05});
         {const pa=t.aim+1.55;G.parts.push({x:cx+Math.cos(t.aim)*.15,y:cy+Math.sin(t.aim)*.15,vx:Math.cos(pa)*1.6+(Math.random()-.5)*.4,vy:Math.sin(pa)*1.6-.2,life:.45,max:.45,c:'#ffd060',r:.022});}   // гильза
       }else if(t.type==='fl'){
         // непрерывная струя пламени: тик каждые 0.1 с, средний урон в секунду прежний (dmg × rate)
@@ -708,7 +716,7 @@ function step(dt){
         for(let j=0;j<=jm&&cur;j++){
           hurt(cur,d*(t.f.wet&&cur.slowT>0?2:1),'tes');if(t.br==='b')cur.stun=Math.max(cur.stun,.8);
           G.tracers.push({x1:from.x,y1:from.y,x2:cur.x,y2:cur.y,t:.14,c:'#9fe0ff',w:3,z:1});
-          G.rings.push({x:cur.x,y:cur.y,t:.22,max:.22,s:.15,c:0x9fe0ff,w:2});
+          G.rings.push({x:cur.x,y:cur.y,t:.22,max:.22,s:.15,c:0x9fe0ff,w:2});flip({x:cur.x,y:cur.y,sz:.8,sheet:'flash',frames:[4],max:.18,rot:Math.random()*6.28,fade:1});
           from=cur;d*=.72;let nx=null,nd=1.15;
           for(const o of G.enemies){if(o.dead||hit.has(o))continue;const dd=Math.hypot(o.x-cur.x,o.y-cur.y);if(dd<nd){nd=dd;nx=o;}}
           if(nx)hit.add(nx);cur=nx;
@@ -720,7 +728,7 @@ function step(dt){
         const lead=best.fly?{x:best.x,y:best.y}:pathPos(Math.min(TOT,best.d+sp0*.9));          // стреляет с упреждением
         for(let k=0;k<n;k++)G.shells.push({x0:cx,y0:cy,x:lead.x+(k?(Math.random()-.5)*1.2:0),y:lead.y+(k?(Math.random()-.5)*1.2:0),t:.9,max:.9,r:rr,dmg:dm,nap:!!t.f.napalm});
         t.cd=1/S.rate[li];sfx('mor',cx);
-        {const mx=cx+Math.cos(t.aim)*.35,my=cy+Math.sin(t.aim)*.35;G.parts.push({x:mx,y:my,vx:0,vy:0,life:.14,max:.14,k:'fl',c:'#ffffff',r:.16});sparks(mx,my,6,'#ffb050',3,t.aim,.9,3);for(let q=0;q<4;q++)G.parts.push({x:mx,y:my,vx:Math.cos(t.aim)*(.3+Math.random()*.5)+(Math.random()-.5)*.3,vy:-.3-Math.random()*.3,life:1.1,max:1.1,k:'dust',t:0xa8a094,a:.35,r:.07+Math.random()*.04});}
+        {const mx=cx+Math.cos(t.aim)*.35,my=cy+Math.sin(t.aim)*.35;flip({x:mx,y:my,sz:.8,sheet:'flash',frames:[2],max:.14,rot:t.aim,fade:1});flip({x:mx,y:my,sz:1.2,sheet:'flash',frames:[5],max:.45,rot:t.aim,a:.6});G.parts.push({x:mx,y:my,vx:0,vy:0,life:.14,max:.14,k:'fl',c:'#ffffff',r:.16});sparks(mx,my,6,'#ffb050',3,t.aim,.9,3);for(let q=0;q<4;q++)G.parts.push({x:mx,y:my,vx:Math.cos(t.aim)*(.3+Math.random()*.5)+(Math.random()-.5)*.3,vy:-.3-Math.random()*.3,life:1.1,max:1.1,k:'dust',t:0xa8a094,a:.35,r:.07+Math.random()*.04});}
       }
     }
     G.enemies=G.enemies.filter(e=>!e.dead);
@@ -731,6 +739,7 @@ function step(dt){
   for(const f of G.floats){f.t-=dt;f.y-=dt*.25;}
   G.floats=G.floats.filter(f=>f.t>0);
   for(const r of G.rings)r.t-=dt;G.rings=G.rings.filter(r=>r.t>0);
+  for(const f of G.flips)f.age+=dt;G.flips=G.flips.filter(f=>f.age<f.max);
   for(const t of G.tracers)t.t-=dt;
   G.tracers=G.tracers.filter(t=>t.t>0);
   // дым от обломков
@@ -1406,6 +1415,7 @@ async function loadArt(){
     if(!(window.__ASSETS&&window.__ASSETS[n])&&location.protocol==='file:')continue;
     tryLv.push(tracked(texAsset(n,'assets/'+n,['webp']).then(t=>{T[n]=t;real++;}).catch(()=>{})));   // необязательный арт: только WebP, чтобы не плодить 404
   }
+  for(const n of ['vfx_boom','vfx_flash'])if(window.__ASSETS&&window.__ASSETS[n]||location.protocol!=='file:')tryLv.push(tracked(texAsset(n,'assets/'+n,['webp']).then(t=>{T[n]=t;}).catch(()=>{})));   // покадровые взрывы и вспышки (листы 3×2)
   await Promise.all(tryLv);
   const sm=Math.min(save.level,MAPS.length-1);                                   // карта, с которой игрок продолжит, и первая карта — до первого экрана
   await tracked(ensureMap(0));if(sm!==0)await tracked(ensureMap(sm));
@@ -1860,6 +1870,14 @@ function syncFx(){
     selG.lineStyle(6,0xffd24a,1);selG.drawRoundedRect(c*CELL+6,r*CELL+6,CELL-12,CELL-12,14);
   }
 
+  // покадровые взрывы и вспышки (аддитивные спрайты)
+  {let nf=0;for(const f of G.flips){
+    let sp=VFX.pool[nf];if(!sp){sp=new PIXI.Sprite();sp.blendMode=ADD;L.fx.addChild(sp);VFX.pool[nf]=sp;}nf++;
+    const k=f.age/f.max,idx=f.frames[Math.min(f.frames.length-1,Math.floor(k*f.frames.length))],tx=vfxFrame(f.sheet,idx);
+    if(!tx){sp.visible=false;continue;}
+    sp.visible=true;sp.texture=tx;sp.anchor.set(f.ax||.5,.5);sp.position.set(f.x*CELL,f.y*CELL);sp.rotation=f.rot||0;
+    sp.width=sp.height=f.sz*CELL;sp.alpha=(f.fade?1-k:Math.min(1,(1-k)*2.2))*(f.a||1);}
+   for(let i=nf;i<VFX.pool.length;i++)VFX.pool[i].visible=false;}
   // частицы
   let ns=0,ng=0;
   for(const p of G.parts){
