@@ -121,6 +121,7 @@ const EN={
   warboy:{hp:26,sp:2.0,leak:1,rew:3,reach:0,kami:1,nm:'Смертник'},                    // бежит к ближайшей башне и подрывается
   vaulter:{hp:55,sp:1.25,leak:1,rew:7,reach:0,vault:1,nm:'Шестовик'},                 // перепрыгивает на башню шестом и рубит её, пока не убьют
   doof:{hp:170,sp:.75,leak:2,rew:15,reach:1.7,dps:12,music:1,nm:'Огненный гитарист'},  // музыка ускоряет врагов рядом, огонь из гитары по башням
+  trader:{hp:160,sp:.7,leak:0,rew:70,reach:0,trader:1,nm:'Торговый караван'},        // мирный: башни его не трогают, пока игрок не решит «ограбить»
   boss:{hp:900,sp:.5,leak:10,rew:100,reach:2,dps:28},
   wormb:{hp:950,sp:.55,leak:10,rew:120,reach:2,dps:24,skin:'worm',rot:Math.PI/2}};   // песчаный червь: ныряет под землю, пока под землёй — неуязвим
 /* 12 волн на каждой карте; здоровье растёт с волной, плюс множитель карты (MAP.hp/MAP.cnt) */
@@ -137,7 +138,7 @@ function waveDef(n){                                                            
   for(const t in base)o[t]=t==='boss'?base[t]:Math.max(1,Math.round(base[t]*k));
   return o;
 }
-function waveCount(k,w){return k==='boss'?w[k]:Math.max(1,Math.round(w[k]*MAP.cnt*DIFF.cnt*(G&&G.risk?1.35:1)*(G&&G.mod?(G.mod.cntAll||1)*((G.mod.cnt&&G.mod.cnt[k])||1):1)));}
+function waveCount(k,w){return k==='boss'?w[k]:Math.max(1,Math.round(w[k]*MAP.cnt*DIFF.cnt*(G&&G.risk?1.35:1)*(G&&G.angry?1.2:1)*(G&&G.mod?(G.mod.cntAll||1)*((G.mod.cnt&&G.mod.cnt[k])||1):1)));}
 const CB=[
   {k:'fl+mg',n:'Зажигательные патроны',e:'Попадания пулемёта поджигают цель: 4 урона в секунду в течение 3 секунд',q:'Искра в гильзе — и пустошь горит ярче.'},
   {k:'mg+sp',n:'Пробитые колёса',e:'Каждый 3-й выстрел пулемёта обездвиживает цель на 1,5 секунды',q:'Без колёс даже король дороги — просто груда железа.'},
@@ -294,6 +295,7 @@ function sfx(k,x){
   else if(k==='wave'){tone(98,.9,'sawtooth',.09,92,t,.3);tone(147,.9,'sawtooth',.06,139,t,.3);noise(.5,.05,300,'lowpass',t);}
   else if(k==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,.5,'triangle',.08,f,t+i*.14,.3));}
   else if(k==='worm'){noise(1.8,.3,170,'lowpass',t,.2,60);tone(48,2,'sine',.22,28,t,.1);noise(1.1,.16,520,'bandpass',t+1.5,.25,180,.8);tone(85,1.1,'sawtooth',.05,38,t+1.5,.3);}
+  else if(k==='screech'){tone(2300*r,.34,'sawtooth',.06,1100,t,.2);tone(2900*r,.28,'triangle',.035,1500,t+.03,.2);noise(.22,.07,3500,'bandpass',t,.1,1800,1.2);}
   else if(k==='jump'){noise(.32,.2,500,'bandpass',t,.12,2600,1.1);tone(260*r,.3,'sine',.07,720,t);}                                  // шестовик: взмах шеста и прыжок
   else if(k==='land'){tone(95*r,.28,'sine',.28,38,t,.1);noise(.14,.18,900,'lowpass',t);tone(1250*r,.2,'triangle',.04,980,t,.2);noise(.02,.07,5200,'highpass',t);}   // приземление: удар по броне
   else if(k==='shout'){const f0=620*r;tone(f0,.55,'sawtooth',.05,f0*2.1,t,.25);tone(f0*1.5,.5,'sawtooth',.03,f0*2.6,t+.04,.25);noise(.5,.06,1500,'bandpass',t,.15,3200,1.4);}   // боевой клич смертников
@@ -494,14 +496,15 @@ function startWave(){
   const bi=q.indexOf('boss');if(bi>=0){q.splice(bi,1);q.splice(Math.min(4,q.length),0,MAP.id==='dunes'?'wormb':'boss');}
   {const cand=[];q.forEach((k,i)=>{if(k==='raider'||k==='biker'||k==='armor'||k==='shield')cand.push(i);});          // элитные враги с особым свойством
    const ak=Object.keys(AFF);let usedCmd=false;G.annAff={};for(let n=Math.min(eliteN(G.wave-1),cand.length);n>0;n--){const i=cand.splice(Math.floor(R()*cand.length),1)[0];let a=ak[Math.floor(R()*ak.length)];if(a==='cmd'&&usedCmd)a='swift';if(a==='cmd')usedCmd=true;q[i]=q[i]+':'+a;}}
-  G.riskNow=!!G.risk;G.risk=false;
+  if(MAP.id==='wasteland'&&[3,6,9].includes(G.wave)){q.splice(Math.min(6,q.length),0,'trader');G.rob=false;G.caravan=true;}   // на «Пустоши» после 3-й, 6-й и 9-й волн приезжает караван
+  G.riskNow=!!G.risk;G.risk=false;G.angryNow=!!G.angry;G.angry=0;
   if(G.riskNow)G.floats.push({x:3,y:4.6,text:'Рискованная волна!',t:2,c:'#ff8a5a',s:44});sfx('risk_on');
   G.spawnQ=q;G.spawnT=.5;G.running=true;updateWaveBtn();sfx('wave');
 }
 function endWave(){
   G.running=false;G.scrap+=MAP.bonus+RUN.bonus;
   if(G.scrap>=500)ach('rich');if(save.kills>=100)ach('kills100');if(save.kills>=1000)ach('kills1000');persist();
-  G.storm=0;G.col=null;G.fire=null;
+  G.storm=0;G.col=null;G.fire=null;G.caravan=false;G.raid=null;
   if(G.mode==='camp'&&G.wave>save.best){save.best=G.wave;persist();}
   if(G.wave>=maxW()){finish(true);return;}
   updateWaveBtn();
@@ -540,6 +543,7 @@ function boom(x,y,s){
 }
 function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/горение) — броня щитовика гасит пули и шипы
   if(e.dead||e.sub||e.jump)return;
+  if(e.type==='trader'&&!G.rob)return;
   d*=RUN.dmg;
   const arm=e.arm;if(arm&&(src==='mg'||src==='sp'))d*=1-arm;
   if(e.vuln>0)d*=1.2;
@@ -566,6 +570,7 @@ function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/г
        G.parts.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,g:5.5,life:.8+Math.random()*.7,max:1.5,k:'deb',c:'#2a2623',r:.06+Math.random()*.05});}}
     if(e.aff==='boom'){boom(e.x,e.y,2);G.rings.push({x:e.x,y:e.y,t:.5,max:.5,s:2.6,c:0xff5a3a,w:3});G.shake=Math.max(G.shake,.3);
       SLOTS.forEach((sl,i)=>{const t=G.slots[i];if(t&&!t.rubble&&Math.hypot(sl[0]+.5-e.x,sl[1]+.5-e.y)<=1.5){t.hp-=40;if(t.hp<=0){t.hp=0;destroyTower(i);}}});}
+    if(e.type==='trader'){G.angry=1;G.caravan=false;G.floats.push({x:Math.max(1,Math.min(5,e.x)),y:Math.max(.8,e.y-.5),text:'Торговцы мстят!',t:2,c:'#ff9a6a',s:34});sfx('combo');}
     if(e.aff==='cmd'){G.floats.push({x:e.x,y:Math.max(.8,e.y-.5),text:'Командир пал!',t:1.4,c:'#c9a8ff',s:30});G.rings.push({x:e.x,y:e.y,t:.5,max:.5,s:1.4,c:0xb48cff,w:3});
       for(const o of G.enemies)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<=2.2)o.stun=Math.max(o.stun,.9);}
     if(isB(e.type)){G.slowT=1.0;G.alert=.5;}
@@ -573,7 +578,7 @@ function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/г
   }
 }
 function makeEnemy(type,d,aff){
-  const E=EN[type],hp=Math.round(E.hp*MAP.hp*DIFF.hp*(G.mod&&G.mod.hp||1)*(1+.05*(G.wave-1))*(G.riskNow?1.1:1)),p=E.fly?{x:PTS[0][0],y:PTS[0][1],a:FA}:pathPos(d);
+  const E=EN[type],hp=Math.round(E.hp*MAP.hp*DIFF.hp*(G.mod&&G.mod.hp||1)*(1+.05*(G.wave-1))*(G.riskNow?1.1:1)*(G.angryNow?1.08:1)),p=E.fly?{x:PTS[0][0],y:PTS[0][1],a:FA}:pathPos(d);
   return {type,d,fly:!!E.fly,x:p.x,y:p.y,a:(d>0||E.fly)?p.a:Math.PI/2,hp,max:hp,slowT:0,slowAmt:0,burn:0,stun:0,vuln:0,flash:0,dead:false,atk:false,ph:Math.random()*6,aff:aff||null,spm:aff==='swift'?1.25:1,arm:EN[type].arm,plate:aff==='tough'?Math.round(hp*.8):0,plateMax:aff==='tough'?Math.round(hp*.8):0,rwm:(aff?2:1)*(G.riskNow?1.6:1),sub:false};
 }
 /* опасности карт: «Дюны» — песчаная буря (враги медленнее на 25%, башни стреляют реже на 25%), «Руины» — обвал на случайную башню с предупреждением */
@@ -583,6 +588,16 @@ function hazards(dt){
     if(G.stormNext==null)G.stormNext=G.t+22+R()*10;
     if(G.storm>0)G.storm-=dt;
     else if(G.t>=G.stormNext){G.storm=9;G.stormNext=G.t+50+R()*25;G.floats.push({x:3,y:3.4,text:'Песчаная буря!',t:2.4,c:'#ffd9a0',s:62});sfx('storm');}
+  }
+  if(MAP.id==='wasteland'){                                                     // налёт стервятников: пикируют на башню и отключают её на 3,5 с
+    if(G.vulNext==null)G.vulNext=G.t+24+R()*10;
+    if(G.raid){const rd=G.raid;rd.t-=dt;
+      if(rd.t<=0){const t=G.slots[rd.i];if(t&&!t.rubble){t.cd=Math.max(t.cd,3.5);t.vul=G.t;const sl=SLOTS[rd.i];sparks(sl[0]+.5,sl[1]+.5,10,'#c9b0e0',3,null,0,3);G.rings.push({x:sl[0]+.5,y:sl[1]+.5,t:.4,max:.4,s:.5,c:0xc9b0e0,w:3});sfx('screech',sl[0]+.5);}G.raid=null;}
+    }else if(G.t>=G.vulNext){
+      const tw=[];G.slots.forEach((t,i)=>{if(t&&!t.rubble&&t.type!=='gen')tw.push(i);});
+      if(tw.length){const i=tw[Math.floor(R()*tw.length)];G.raid={i,t:1.4};G.floats.push({x:SLOTS[i][0]+.5,y:Math.max(.8,SLOTS[i][1]-.3),text:'Стервятник!',t:1.6,c:'#d8c0f0',s:38});sfx('screech',SLOTS[i][0]+.5);}
+      G.vulNext=G.t+32+R()*16;
+    }
   }
   if(MAP.id==='port'){                                                          // горящий разлив: огонь по участку дороги жжёт врагов и башни рядом
     if(G.fireNext==null)G.fireNext=G.t+16+R()*8;
@@ -730,6 +745,12 @@ function step(dt){
       }
       const sp=E.sp*(e.spm||1)*(e.sub?1.5:1)*(e.dash?1.8:1)*(e.rage?1.5:1)*(e.brk?1.25:1)*(e.buff?1.2:1)*(e.mus?1.25:1)*(e.slowT>0?1-e.slowAmt*(e.aff==='swift'?.5:1):1)*(e.p2?1.6:1)*(G.mod&&G.mod.sp||1)*(G.storm>0?.75:1);
       e.d+=sp*dt;
+      if(E.trader&&e.d>=TOT){                                                // караван доехал до заправки
+        e.dead=true;e.leaked=true;G.caravan=false;
+        if(!G.rob){G.scrap+=30;G.slots.forEach(t=>{if(t&&!t.rubble)t.hp=100;});G.floats.push({x:3,y:4.2,text:'Торговец расплатился: +30 лома, башни починены',t:2.8,c:'#9be07a',s:34});sfx('combo');}
+        else G.floats.push({x:3,y:4.2,text:'Караван ушёл!',t:1.8,c:'#ffb070',s:34});
+        continue;
+      }
       if(e.d>=(EN[e.type].fly?FLEN:TOT)){
         e.dead=true;e.leaked=true;if(G.shield>0){G.shield--;G.floats.push({x:e.x,y:Math.max(1,e.y-.4),text:'Броня выдержала!',t:1.6,c:'#7fd6ff',s:34});}else G.fuel-=E.leak+(e.aff==='boom'?1:0);sfx('leak');G.shake=.3;
         G.floats.push({x:EXIT[0]+.5,y:EXIT[1],text:'-'+E.leak,t:1.2,c:'#ff5a3a'});
@@ -753,7 +774,7 @@ function step(dt){
       if(t.rec>0)t.rec-=dt;t.cd-=dt*RUN.rate*(G.storm>0?.75:1);if(t.cd>0)continue;
       const cx=SLOTS[i][0]+.5,cy=SLOTS[i][1]+.5,R=rangeOf(t),S=LV[t.type],li=lvOf(t)-1;
       let best=null;
-      for(const e of G.enemies){if(e.dead||e.sub||e.jump)continue;
+      for(const e of G.enemies){if(e.dead||e.sub||e.jump||(e.type==='trader'&&!G.rob))continue;
         if(e.fly&&(t.type==='fl'||t.type==='sp'||t.type==='mor'))continue;     // огонь, шипы и мины по воздуху не бьют
         if(Math.hypot(e.x-cx,e.y-cy)<=R&&(!best||e.d>best.d))best=e;}
       if(!best)continue;
@@ -1041,6 +1062,13 @@ $('sMode').addEventListener('click',ev=>{
 });
 $('mModes').onclick=()=>show('sMode');
 $('riskBtn').onclick=()=>{if(G&&!G.running&&!G.over&&!G.paused){G.risk=!G.risk;abShown='';sfx(G.risk?'risk_on':'buy');}};
+$('caravanBtn').onclick=()=>{if(G&&G.caravan&&!G.rob&&!G.over&&!G.paused){G.rob=true;sfx('combo');G.floats.push({x:3,y:4.4,text:'Грабим караван!',t:1.6,c:'#ffb070',s:36});}};
+let carShown='';
+function updateCaravan(){                                                         // выбор: пропустить караван (+30 лома и ремонт) или ограбить (+70 лома, но следующая волна злее)
+  const b=$('caravanBtn'),on=!!(G&&G.caravan&&!G.rob&&G.running&&!G.over&&!G.paused&&G.enemies.some(e=>e.type==='trader'&&!e.dead));
+  const key=on?'on':'';if(key===carShown)return;carShown=key;b.style.display=on?'flex':'none';
+  if(on)b.innerHTML='<span class="ri">💰</span><span><b>ОГРАБИТЬ КАРАВАН?</b><small>сейчас башни его не трогают: доедет — +30 лома и ремонт. Ограбление: +70 лома, но следующая волна злее на 20%</small></span>';
+}
 let riskShown='';
 function updateRisk(){                                                            // крупная кнопка «Рискнуть» над полем между волнами
   const b=$('riskBtn'),on=G&&!G.running&&!G.over&&!G.paused&&G.sel<0&&G.wave>=2&&G.wave<maxW()&&!(G.mod&&G.mod.noRisk)&&!tutorOn();
@@ -1140,7 +1168,7 @@ $('eMenu').onclick=()=>show('sMenu');
 const CELL=180,PX=256;               // клетка в мире (px) и в текстурах (px)
 const ART={                          // имя: [ширина, высота] в клетках
   map:[6,10],map_dunes:[6,10],map_city:[6,10],slot:[1,1],station:[1,1],rubble:[1,1],
-  raider:[1,.75],biker:[.95,.5],armor:[1.35,.87],shield:[1.35,.87],sniper:[1.4,.75],drone:[.85,.85],medic:[1.3,.82],boss:[2.2,1.1],warboy:[.75,.5],vaulter:[1.2,.63],doof:[1.5,.88],
+  raider:[1,.75],biker:[.95,.5],armor:[1.35,.87],shield:[1.35,.87],sniper:[1.4,.75],drone:[.85,.85],medic:[1.3,.82],boss:[2.2,1.1],trader:[1.7,.8],warboy:[.75,.5],vaulter:[1.2,.63],doof:[1.5,.88],
   tes_base:[1,1],tes_head:[1,1],mor_base:[1,1],mor_head:[1,1],
   mg_base:[1,1],mg_head:[1,1],fl_base:[1,1],fl_head:[1,1],sp_base:[1,1],sp_head:[1,1],gen_base:[1,1]};
 const T={};
@@ -1155,6 +1183,7 @@ function wheelC(c,x,y,r){c.fillStyle='#121212';c.beginPath();c.arc(x,y,r,0,6.28)
 function shadowC(c,x,y,rx,ry){c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.ellipse(x,y,rx,ry,0,0,6.28);c.fill();}
 
 const PROC={
+  trader:(c,u)=>{c.fillStyle='#8a7a52';c.fillRect(-.75*u,-.34*u,1.5*u,.68*u);c.fillStyle='#c9b98a';c.fillRect(-.55*u,-.28*u,.9*u,.56*u);c.fillStyle='#d8a020';c.beginPath();c.arc(.5*u,0,.1*u,0,6.28);c.fill();},
   warboy:(c,u)=>{c.fillStyle='#e8e0d0';c.beginPath();c.arc(-.05*u,0,.1*u,0,6.28);c.fill();c.strokeStyle='#6a4a2a';c.lineWidth=5;c.beginPath();c.moveTo(-.2*u,.03*u);c.lineTo(.3*u,0);c.stroke();c.fillStyle='#d03a1a';c.fillRect(.27*u,-.04*u,.07*u,.08*u);},
   vaulter:(c,u)=>{c.fillStyle='#7a5a3a';c.beginPath();c.arc(0,0,.11*u,0,6.28);c.fill();c.strokeStyle='#caa070';c.lineWidth=5;c.beginPath();c.moveTo(-.5*u,.12*u);c.lineTo(.5*u,-.1*u);c.stroke();},
   doof:(c,u)=>{c.fillStyle='#6a3a2a';c.fillRect(-.7*u,-.35*u,1.4*u,.7*u);c.fillStyle='#222';for(const x of [-.5,-.3])for(const y of [-.2,.2]){c.beginPath();c.arc(x*u,y*u,.1*u,0,6.28);c.fill();}c.fillStyle='#ff8a1a';c.fillRect(.4*u,-.05*u,.3*u,.1*u);},
@@ -1806,7 +1835,7 @@ function makeEnemyObj(e){
   const b1=new PIXI.Sprite(PIXI.Texture.WHITE);b1.height=10;b1.position.set(-w/2,2);
   bar.addChild(b0,b1);bar.y=-(isB(e.type)?.62:.5)*CELL;
   c.addChild(aura,sh,bodyC,st,bar);
-  let tag=null;if(e.aff){tag=new PIXI.Text(AFF[e.aff].n,{fontFamily:'Trebuchet MS, Arial',fontSize:20,fontWeight:'bold',fill:AFF[e.aff].col,stroke:'#000',strokeThickness:5,lineJoin:'round'});tag.anchor.set(.5);tag.y=bar.y-18;c.addChild(tag);}
+  let tag=null;if(e.aff||EN[e.type].trader){const tn=e.aff?AFF[e.aff].n:'Караван',tc=e.aff?AFF[e.aff].col:'#ffd070';tag=new PIXI.Text(tn,{fontFamily:'Trebuchet MS, Arial',fontSize:20,fontWeight:'bold',fill:tc,stroke:'#000',strokeThickness:5,lineJoin:'round'});tag.anchor.set(.5);tag.y=bar.y-18;c.addChild(tag);}
   L.enemies.addChild(c);
   return {c,fr,fi:0,aura,ov,tag,rot:EN[e.type].rot||0,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
 }
@@ -1847,6 +1876,7 @@ function syncEnemies(){
     if(e.plate>0){g.beginFill(0x000000,.7);g.drawRect(-o.w/2-2,o.bar.y-9,o.w+4,8);g.endFill();g.beginFill(0xaec2d6,.98);g.drawRect(-o.w/2,o.bar.y-7,o.w*e.plate/e.plateMax,4);g.endFill();}   // шкала плиты
     if(e.aff==='cmd'){g.lineStyle(2,0xb48cff,.28);g.beginFill(0xb48cff,.05);g.drawCircle(0,0,1.5*CELL/(o.c.scale.x||1));g.endFill();}                 // зона знамени
     if(e.buff){g.lineStyle(3,0xb48cff,.55+.3*Math.sin(G.t*8));g.drawCircle(0,.05*CELL,.32*CELL);}
+    if(e.type==='trader'){g.lineStyle(3,G.rob?0xff6a4a:0x7fe36a,.55+.3*Math.sin(G.t*5));g.drawCircle(0,0,.6*CELL);}
     if(e.mus){g.lineStyle(2.5,0xffa040,.4+.3*Math.sin(G.t*9+e.ph));g.drawCircle(0,0,.28*CELL);}
     if(e.type==='doof'){g.lineStyle(2,0xff8a2a,.2);g.beginFill(0xff8a2a,.04);g.drawCircle(0,0,1.8*CELL);g.endFill();}
     if(e.rage){g.lineStyle(3,0xff5a3a,.4+.5*Math.abs(Math.sin(G.t*12)));g.drawCircle(0,0,.5*CELL);}
@@ -1893,8 +1923,18 @@ function birdsUpdate(){                                                         
     b.s.position.set(x,y);b.s.rotation=rot;b.s.width=.36*CELL;b.s.height=.3*CELL*flap;
     b.sh.position.set(x+.25*CELL,y+.4*CELL);b.sh.rotation=rot;b.sh.width=.36*CELL;b.sh.height=.3*CELL*flap;}
 }
+let RAIDS=null;
+function raidUpdate(){                                                            // пикирующий стервятник и метки отключённых башен
+  if(!T.bird)return;
+  if(!RAIDS){const mk=()=>{const x=new PIXI.Sprite(T.bird);x.anchor.set(.5);L.fx.addChild(x);return x;};RAIDS={s:mk(),sh:mk()};RAIDS.s.tint=0x120c08;RAIDS.sh.tint=0;RAIDS.sh.alpha=.25;RAIDS.s.visible=RAIDS.sh.visible=false;}
+  const R=G.raid;if(!R||!G.slots[R.i]){RAIDS.s.visible=RAIDS.sh.visible=false;return;}
+  const sl=SLOTS[R.i],tx=(sl[0]+.5)*CELL,ty=(sl[1]+.5)*CELL,k=1-R.t/1.4,sx=(COLS+1)*CELL,sy=-CELL;
+  const x=sx+(tx-sx)*k,y=sy+(ty-sy)*k-Math.sin(Math.PI*k)*CELL*.8,rot=Math.atan2(ty-sy,tx-sx)+Math.PI/2,fl=.7+.3*Math.sin(G.t*20);
+  RAIDS.s.visible=RAIDS.sh.visible=true;RAIDS.s.position.set(x,y);RAIDS.s.rotation=rot;RAIDS.s.width=.62*CELL;RAIDS.s.height=.5*CELL*fl;
+  RAIDS.sh.position.set(x+.3*CELL,y+.5*CELL+Math.sin(Math.PI*k)*CELL*.8);RAIDS.sh.rotation=rot;RAIDS.sh.width=.62*CELL;RAIDS.sh.height=.5*CELL*fl;
+}
 function syncFx(){
-  birdsUpdate();
+  birdsUpdate();raidUpdate();
   if(grain){grain.width=app.screen.width;grain.height=app.screen.height;grain.tilePosition.set(Math.random()*128,Math.random()*128);}
   if(alertS){alertS.width=app.screen.width;alertS.height=app.screen.height;alertS.alpha=Math.max(0,G.alert)*.35;}
   const sh=G.shake>0?G.shake:0;
@@ -1963,6 +2003,7 @@ function syncFx(){
   // выбранная башня
   selG.clear();
   if(G.fire&&G.fire.warn>0){selG.lineStyle(14,0xff7a2a,.35+.3*Math.sin(G.t*14));for(let q=0;q<=8;q++){const p=pathPos(G.fire.d0+(G.fire.d1-G.fire.d0)*q/8);q?selG.lineTo(p.x*CELL,p.y*CELL):selG.moveTo(p.x*CELL,p.y*CELL);}}   // предупреждение: разлив вот-вот вспыхнет
+  SLOTS.forEach((sl,i)=>{const t=G.slots[i];if(t&&t.vul!=null&&G.t-t.vul<3.5){selG.lineStyle(4,0xc9b0e0,.75*(1-(G.t-t.vul)/3.5));selG.drawCircle((sl[0]+.5)*CELL,(sl[1]+.5)*CELL,.42*CELL);}});   // метка: башню отключил стервятник
   if(G.col){const [cc,rr]=SLOTS[G.col.i];selG.lineStyle(7,0xff4a2a,.45+.4*Math.sin(G.t*14));selG.drawRoundedRect(cc*CELL+3,rr*CELL+3,CELL-6,CELL-6,14);}   // предупреждение об обвале
   if(TUT.pulse){const pa=.3+.3*Math.sin(G.t*5);selG.lineStyle(5,0xffd24a,pa);SLOTS.forEach(([c,r],i)=>{if(!G.slots[i])selG.drawRoundedRect(c*CELL+8,r*CELL+8,CELL-16,CELL-16,14);});}
   if(G.sel>=0&&(!G.slots[G.sel]||G.slots[G.sel].rubble)){            // пустая площадка: обводим соседние башни, с которыми можно собрать комбо
@@ -2107,7 +2148,7 @@ function frameTick(){
   if(G.alert>0)G.alert=Math.max(0,G.alert-real*.45);
   const sdt=G.paused?0:real*G.speed*(G.slowT>0?.45:1),n=Math.ceil(sdt/.025);
   for(let i=0;i<n;i++)step(sdt/n);
-  hud();refreshSheet();tutorUpdate();humUpdate();stormFx();updateRisk();
+  hud();refreshSheet();tutorUpdate();humUpdate();stormFx();updateRisk();updateCaravan();
   syncTowers();syncEnemies();syncFx();
 }
 
