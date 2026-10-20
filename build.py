@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Собирает один файл Benzak.html: PixiJS + game.js + (если есть) assets/*.png в base64.
+"""Собирает один файл Benzak.html: PixiJS + game.js + (если есть) assets/*.webp|png|jpg|m4a в base64.
 Запуск:  python3 build.py [куда_сохранить]   (по умолчанию ../Benzak.html)"""
 import base64, glob, json, os, sys
 here = os.path.dirname(os.path.abspath(__file__))
@@ -8,10 +8,13 @@ html = rd('index.html')
 pixi = rd('lib/pixi.min.js').replace('</script>', '<\\/script>')
 game = rd('game.js').replace('</script>', '<\\/script>')
 assets = {}
-for f in sorted(glob.glob(os.path.join(here, 'assets', '*.png')) + glob.glob(os.path.join(here, 'assets', '*.jpg')) + glob.glob(os.path.join(here, 'assets', 'props', '*.png')) + glob.glob(os.path.join(here, 'assets', '*.m4a'))):
+# WebP предпочтительнее: если рядом лежит .webp, PNG/JPG с тем же именем в сборку не берём
+pat = lambda *g: sum((sorted(glob.glob(os.path.join(here, 'assets', *x))) for x in g), [])
+for f in pat(['*.webp'], ['props', '*.webp'], ['*.png'], ['*.jpg'], ['props', '*.png'], ['*.m4a']):
     name, ext = os.path.splitext(os.path.basename(f))
     if os.path.basename(os.path.dirname(f)) == 'props': name = 'prop_' + name
-    mime = 'audio/mp4' if ext == '.m4a' else 'image/jpeg' if ext == '.jpg' else 'image/png'
+    if name in assets: continue
+    mime = {'.m4a': 'audio/mp4', '.jpg': 'image/jpeg', '.webp': 'image/webp'}.get(ext, 'image/png')
     assets[name] = 'data:%s;base64,' % mime + base64.b64encode(open(f, 'rb').read()).decode()
 inline = '<script>window.__ASSETS=%s;</script>\n<script>%s</script>\n<script>%s</script>' % (json.dumps(assets), pixi, game)
 marker = '<script src="lib/pixi.min.js"></script>\n<script src="game.js"></script>'

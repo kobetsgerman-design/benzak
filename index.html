@@ -80,7 +80,22 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 
 #perkList button,#metaList button{padding:10px 12px}
 #perkList button small{display:block;font-weight:normal;margin-top:2px}
-#metaList .card button{margin-top:6px;width:100%}
+#metaList .card button{margin-top:6px;width:100%}#pauseov{display:none;position:absolute;inset:0;z-index:4;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(10,6,3,.62);font-size:34px;font-weight:bold;color:#ffcf6a;text-shadow:0 2px 0 #3a2608,0 0 14px #ff8a1a88}
+#pauseov button{font-size:18px;padding:12px 28px}
+.vol{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;max-width:300px;color:#cdb68a;font-weight:bold}
+.vol input{flex:1;accent-color:#ff9a2a}
+#mStars{display:flex;flex-wrap:nowrap;gap:6px;width:100%;max-width:340px}
+.scr .mapb{flex:1;padding:6px 4px;font-size:12px;line-height:1.2;min-width:0;white-space:normal}
+.mapb b{display:block;font-size:11px}
+.mapb[disabled]{opacity:.55}
+#sheet button.tc{display:flex;align-items:center;gap:8px;text-align:left;padding:5px 8px}
+#sheet button.tc img{width:36px;height:36px;object-fit:contain;flex:none;filter:drop-shadow(0 1px 2px #000)}
+#sheet button.tc span{display:block;min-width:0;line-height:1.15}
+#sheet button.tc small{display:block;font-weight:normal;font-size:11px;color:#f0d9b0;opacity:.95}
+.row2{display:flex;gap:8px;width:100%;max-width:300px}
+.scr .row2 button{flex:1;min-width:0;font-size:16px}
+#dailyCard{text-align:center;line-height:1.35}
+#dailyCard button{margin-top:8px}
 /* ---- звёзды, достижения ---- */
 .stars{font-size:30px;color:#ffcf6a;letter-spacing:4px;text-shadow:0 2px 0 #5a3a08,0 0 12px #ff9a2a88}
 .stars-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px}
@@ -95,27 +110,31 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 <div id="app">
   <div id="toast"></div>
   <div id="top"><span title="Лом"><img class="ic" data-ui="scrap" alt=""><b id="hScrap">100</b></span><span title="Топливо"><img class="ic" data-ui="fuel" alt=""><b id="hFuel">10</b><i>/10</i></span><span title="Волна"><img class="ic" data-ui="skull" alt=""><b id="hWave">0</b><i>/<em id="hWaveMax">12</em></i></span></div>
-  <div id="cw"><canvas id="cv"></canvas><div id="sheet"></div></div>
+  <div id="cw"><canvas id="cv"></canvas><div id="sheet"></div><div id="pauseov"><div>Пауза</div><button id="bResume">Продолжить</button></div></div>
   <div id="abil"><div id="abbtn"><button class="ab" data-a="air" title="Воздушный удар"><img data-ui="air" alt=""><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="rep" title="Ремонт всех башен"><img data-ui="rep" alt=""><span class="cd"></span><span class="t"></span></button><button class="ab" data-a="emp" title="ЭМИ: оглушает врагов"><img data-ui="emp" alt=""><span class="cd"></span><span class="t"></span></button></div><div id="nextw"></div><div id="hint"></div></div>
-  <div id="bot"><button id="bWave">Начать волну</button><button id="bSpeed" class="alt" style="flex:.45">×1</button><button id="bMenu" class="alt" style="flex:.6">Меню</button></div>
+  <div id="bot"><button id="bWave">Начать волну</button><button id="bPause" class="alt" style="flex:.3" title="Пауза (пробел)">❚❚</button><button id="bSpeed" class="alt" style="flex:.4">×1</button><button id="bMenu" class="alt" style="flex:.6">Меню</button></div>
 
   <div class="scr" id="sMenu" style="display:flex">
     <img id="mHero" alt="" style="display:none">
     <h1>БЕНЗАК</h1><div class="sub">Война за бензак</div>
     <button id="mPlay">Играть</button>
     <button id="mNew" class="alt" style="display:none">Начать сначала</button>
-    <button id="mBook" class="alt">Книга комбо</button>
-    <button id="mSet" class="alt">Настройки</button>
+    <button id="mModes" class="alt">Режимы</button>
+    <div class="row2"><button id="mBook" class="alt">Книга комбо</button><button id="mSet" class="alt">Настройки</button></div>
     <div id="mStars" class="sub stars-row"></div>
     <button id="mMeta" class="alt">Мастерская</button>
     <button id="mAch" class="alt">Достижения</button>
     <div id="mBest" class="sub"></div>
   </div>
+  <div class="scr" id="sMode"><h2>Режимы</h2><div class="card" id="dailyCard" style="width:100%;max-width:340px"></div><div class="sub">Бесконечный режим: держитесь как можно дольше</div><div id="endBtns" style="display:grid;gap:8px;width:100%;max-width:340px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sMeta"><h2>Мастерская</h2><div id="metaTok" class="sub"></div><div id="metaList" style="display:grid;gap:8px;width:100%;max-width:400px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sPerk"><h2>Выберите улучшение</h2><div class="sub">действует до конца этой карты</div><div id="perkList" style="display:grid;gap:10px;width:100%;max-width:400px"></div></div>
   <div class="scr" id="sAch"><h2>Достижения</h2><div id="achList" style="display:grid;gap:8px;width:100%;max-width:400px"></div><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sBook"><h2>Книга комбо</h2><div id="cards"></div><button class="alt" data-back>Назад</button></div>
-  <div class="scr" id="sSet"><h2>Настройки</h2><button id="tSound">Звук: вкл</button><button class="alt" data-back>Назад</button></div>
+  <div class="scr" id="sSet"><h2>Настройки</h2><button id="tSound">Звук: вкл</button>
+    <label class="vol">Музыка<input type="range" id="vMus" min="0" max="100"></label>
+    <label class="vol">Эффекты<input type="range" id="vSfx" min="0" max="100"></label>
+    <button id="tReset" class="alt">Сбросить прогресс</button><button class="alt" data-back>Назад</button></div>
   <div class="scr" id="sEnd"><h2 id="eTitle"></h2><div id="eInfo"></div><button id="eNext" style="display:none">Следующая карта</button><button id="eAgain" class="alt">Ещё раз</button><button id="eMenu" class="alt">В меню</button></div>
 </div>
 
@@ -123,12 +142,15 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 <script src="lib/pixi.min.js"></script>
 <script src="game.js"></script>
 <script>
-/* картинка босса на заставке: из встроенных ассетов (Benzak.html) или assets/menu_boss.jpg; нет файла — блок скрыт */
+/* картинка босса на заставке и значки интерфейса: из встроенных ассетов (Benzak.html) или assets/*.webp, при ошибке — PNG/JPG */
 (function(){var h=document.getElementById('mHero'),a=window.__ASSETS;
   h.onload=function(){h.style.display='block';};
-  h.src=(a&&a.menu_boss)||'assets/menu_boss.jpg';
+  if(a&&a.menu_boss)h.src=a.menu_boss;
+  else{h.onerror=function(){h.onerror=null;h.src='assets/menu_boss.jpg';};h.src='assets/menu_boss.webp';}
   document.documentElement.style.setProperty('--panel','url('+((a&&a.ui_panel)||'assets/ui_panel.jpg')+')');
-  document.querySelectorAll('img[data-ui]').forEach(function(i){var n='ui_'+i.dataset.ui;i.src=(a&&a[n])||'assets/'+n+'.png';});})();
+  document.querySelectorAll('img[data-ui]').forEach(function(i){var n='ui_'+i.dataset.ui;
+    if(a&&a[n]){i.src=a[n];return;}
+    i.onerror=function(){i.onerror=null;i.src='assets/'+n+'.png';};i.src='assets/'+n+'.webp';});})();
 </script>
 </body>
 </html>
