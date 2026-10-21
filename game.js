@@ -496,7 +496,7 @@ function startWave(){
   const bi=q.indexOf('boss');if(bi>=0){q.splice(bi,1);q.splice(Math.min(4,q.length),0,MAP.id==='dunes'?'wormb':'boss');}
   {const cand=[];q.forEach((k,i)=>{if(k==='raider'||k==='biker'||k==='armor'||k==='shield')cand.push(i);});          // элитные враги с особым свойством
    const ak=Object.keys(AFF);let usedCmd=false;G.annAff={};for(let n=Math.min(eliteN(G.wave-1),cand.length);n>0;n--){const i=cand.splice(Math.floor(R()*cand.length),1)[0];let a=ak[Math.floor(R()*ak.length)];if(a==='cmd'&&usedCmd)a='swift';if(a==='cmd')usedCmd=true;q[i]=q[i]+':'+a;}}
-  if(MAP.id==='wasteland'&&[3,6,9].includes(G.wave)){q.splice(Math.min(6,q.length),0,'trader');G.rob=false;G.caravan=true;}   // на «Пустоши» после 3-й, 6-й и 9-й волн приезжает караван
+  if(MAP.id==='wasteland'&&[3,6,9].includes(G.wave)){q.splice(Math.min(6,q.length),0,'trader');G.rob=false;G.caravan=true;G.carHide=false;}   // на «Пустоши» после 3-й, 6-й и 9-й волн приезжает караван
   G.riskNow=!!G.risk;G.risk=false;G.angryNow=!!G.angry;G.angry=0;
   if(G.riskNow)G.floats.push({x:3,y:4.6,text:'Рискованная волна!',t:2,c:'#ff8a5a',s:44});sfx('risk_on');
   G.spawnQ=q;G.spawnT=.5;G.running=true;updateWaveBtn();sfx('wave');
@@ -1062,12 +1062,20 @@ $('sMode').addEventListener('click',ev=>{
 });
 $('mModes').onclick=()=>show('sMode');
 $('riskBtn').onclick=()=>{if(G&&!G.running&&!G.over&&!G.paused){G.risk=!G.risk;abShown='';sfx(G.risk?'risk_on':'buy');}};
-$('caravanBtn').onclick=()=>{if(G&&G.caravan&&!G.rob&&!G.over&&!G.paused){G.rob=true;sfx('combo');G.floats.push({x:3,y:4.4,text:'Грабим караван!',t:1.6,c:'#ffb070',s:36});}};
+{const cb=$('caravanBtn');let sx=null,moved=false;                              // табличку каравана можно смахнуть в сторону или закрыть крестиком: это значит «не грабить», башни его по-прежнему не трогают
+  const hide=()=>{if(G)G.carHide=true;cb.style.transform='';cb.style.animation='';};
+  cb.addEventListener('pointerdown',ev=>{sx=ev.clientX;moved=false;cb.style.animation='none';try{cb.setPointerCapture(ev.pointerId);}catch(e){}});
+  cb.addEventListener('pointermove',ev=>{if(sx==null)return;const dx=ev.clientX-sx;if(Math.abs(dx)>10)moved=true;if(moved){cb.style.transform='translateX(calc(-50% + '+dx+'px))';cb.style.opacity=String(Math.max(.25,1-Math.abs(dx)/260));}});
+  const end=ev=>{if(sx==null)return;const dx=ev.clientX-sx;sx=null;cb.style.opacity='';if(moved&&Math.abs(dx)>55){hide();}else{cb.style.transform='';cb.style.animation='';}};
+  cb.addEventListener('pointerup',end);cb.addEventListener('pointercancel',()=>{sx=null;cb.style.transform='';cb.style.opacity='';cb.style.animation='';});
+  cb.addEventListener('click',ev=>{if(moved){moved=false;return;}
+    if(ev.target.closest('.xc')){hide();return;}
+    if(G&&G.caravan&&!G.rob&&!G.over&&!G.paused){G.rob=true;sfx('combo');G.floats.push({x:3,y:4.4,text:'Грабим караван!',t:1.6,c:'#ffb070',s:36});}});}
 let carShown='';
 function updateCaravan(){                                                         // выбор: пропустить караван (+30 лома и ремонт) или ограбить (+70 лома, но следующая волна злее)
-  const b=$('caravanBtn'),on=!!(G&&G.caravan&&!G.rob&&G.running&&!G.over&&!G.paused&&G.enemies.some(e=>e.type==='trader'&&!e.dead));
-  const key=on?'on':'';if(key===carShown)return;carShown=key;b.style.display=on?'flex':'none';
-  if(on)b.innerHTML='<span class="ri">💰</span><span><b>ОГРАБИТЬ КАРАВАН?</b><small>сейчас башни его не трогают: доедет — +30 лома и ремонт. Ограбление: +70 лома, но следующая волна злее на 20%</small></span>';
+  const b=$('caravanBtn'),on=!!(G&&G.caravan&&!G.carHide&&!G.rob&&G.running&&!G.over&&!G.paused&&G.enemies.some(e=>e.type==='trader'&&!e.dead));
+  const key=on?'on':'';if(key===carShown)return;carShown=key;b.style.opacity='';b.style.display=on?'flex':'none';
+  if(on)b.innerHTML='<span class="xc" title="Закрыть (или смахните табличку)">✕</span><span class="ri">💰</span><span><b>ОГРАБИТЬ КАРАВАН?</b><small>сейчас башни его не трогают: доедет — +30 лома и ремонт. Ограбление: +70 лома, но следующая волна злее на 20%. Смахните табличку, если не грабите</small></span>';
 }
 let riskShown='';
 function updateRisk(){                                                            // крупная кнопка «Рискнуть» над полем между волнами
