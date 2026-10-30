@@ -458,6 +458,8 @@ function upgrade(i,br){
   if(lvOf(t)===2){if(br!=='a'&&br!=='b')br='a';t.br=br;}   // на 3-й уровень — с выбором пути (по умолчанию A)
   G.scrap-=c;t.lv=lvOf(t)+1;t.inv=(t.inv||TT[t.type].cost)+c;t.hp=100;t.upAt=G.t;
   const [col,row]=SLOTS[i];
+  G.rings.push({x:col+.5,y:row+.5,t:.5,max:.5,s:1.3,c:0x7fe36a,w:4});G.rings.push({x:col+.5,y:row+.5,t:.8,max:.8,s:2.2,c:0xffd24a,w:2});   // волна улучшения
+  sparks(col+.5,row+.5,t.lv>=3?22:14,t.lv>=3?'#ffd24a':'#9fff8a',3.4,null,0,3.5);flip({x:col+.5,y:row+.5,sz:1.5,sheet:'flash',frames:[3],max:.3,fade:1,rot:Math.random()*6.28});
   G.floats.push({x:col+.5,y:row+.2,text:t.br?BR[t.type][t.br].n:'Уровень '+t.lv,t:1.8,c:'#7fe36a'});
   if(t.lv===3)ach('lv3');
   announce(recompute());sfx('combo');
@@ -812,7 +814,7 @@ function step(dt){
         hurt(best,sd,'sp');best.slowT=2;best.slowAmt=Math.min(.8,S.slow[li]+(t.f.elec?.1+.05*t.f.elec:0)+(t.br==='a'?.2:0));
         if(t.br==='a'&&((t.shots=(t.shots||0)+1)%4===0))best.stun=Math.max(best.stun,1);
         if(t.br==='b'){for(const o of G.enemies)if(o!==best&&!o.dead&&Math.hypot(o.x-best.x,o.y-best.y)<=.6)hurt(o,sd*.5,'sp');G.rings.push({x:best.x,y:best.y,t:.3,max:.3,s:.2});}
-        t.cd=1;G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.1,c:t.f.elec?'#7fd6ff':'#c9c9c9'});sfx('sp',cx);
+        t.cd=1;G.tracers.push({x1:cx,y1:cy,x2:best.x,y2:best.y,t:.1,c:t.f.elec?'#7fd6ff':'#c9c9c9'});sfx('sp',cx);sparks(best.x,best.y,5,t.f.elec?'#9fe0ff':'#d8d8d8',2.4,null,0,4);sparks(cx+Math.cos(t.aim)*.35,cy+Math.sin(t.aim)*.35,2,'#e8e8e8',2,t.aim,.6,2);
       }else if(t.type==='tes'){
         const jm=S.jmp[li]+(t.br==='a'?2:0)+(t.f.chain?1:0),hit=new Set([best]);
         let cur=best,from={x:cx,y:cy},d=S.dmg[li];
@@ -824,7 +826,7 @@ function step(dt){
           for(const o of G.enemies){if(o.dead||hit.has(o))continue;const dd=Math.hypot(o.x-cur.x,o.y-cur.y);if(dd<nd){nd=dd;nx=o;}}
           if(nx)hit.add(nx);cur=nx;
         }
-        t.cd=1/S.rate[li];sfx('tes',cx);
+        t.cd=1/S.rate[li];sfx('tes',cx);sparks(cx,cy,6,'#9fe0ff',2.6,null,0,0);G.rings.push({x:cx,y:cy,t:.25,max:.25,s:.5,c:0x9fe0ff,w:3});
       }else if(t.type==='mor'){
         const rr=S.r[li]*(t.br==='b'?1.4:1)*(t.f.big?1.3:1),n=t.br==='a'?3:1,dm=S.dmg[li]*(t.br==='b'?1.3:1)*(n>1?.6:1);
         const sp0=EN[best.type].sp*(best.slowT>0?1-best.slowAmt:1);
@@ -1703,7 +1705,13 @@ function applyMapScene(){        // перестраивает карту, пл�
    for(let k=0;k<7;k++){const x=R()*COLS,y=R()*ROWS,a=R()*6.28;for(let q=0;q<9;q++)stamp(T.glow,x+Math.cos(a)*q*.11,y+Math.sin(a)*q*.11,.06,0,.1);}}
   L.slots.removeChildren();
   SLOTS.forEach(s=>{const ao=spr(T.glow,CELL*1.5,CELL*1.5);ao.tint=0;ao.alpha=.28;ao.position.set((s[0]+.5)*CELL+5,(s[1]+.5)*CELL+8);L.slots.addChild(ao);});
-  SLOTS.forEach(s=>{const p=spr(T['slot_'+MAP.id]||T.slot,CELL,CELL);p.position.set((s[0]+.5)*CELL,(s[1]+.5)*CELL);L.slots.addChild(p);});
+  {const R=rnd(MAP.decor?MAP.decor.seed*11+5:9),wear={wasteland:0x7a3a14,dunes:0x8a5a2a,city:0x3a4a2a,port:0x2a2a30}[MAP.id]||0x5a3418;
+  SLOTS.forEach(s=>{const p=spr(T['slot_'+MAP.id]||T.slot,CELL,CELL);p.position.set((s[0]+.5)*CELL,(s[1]+.5)*CELL);
+    if(R()<.5)p.scale.x*=-1;if(R()<.5)p.scale.y*=-1;{const v=.86+R()*.14;p.tint=((v*255|0)<<16)|((v*252|0)<<8)|(v*246|0);}       // плиты разные: отражение и оттенок
+    L.slots.addChild(p);
+    const w=spr(T.smoke,CELL*(.45+R()*.3),CELL*(.35+R()*.3));w.tint=wear;w.alpha=.1+R()*.12;w.rotation=R()*6.28;w.position.set(p.x+(R()-.5)*CELL*.4,p.y+(R()-.5)*CELL*.4);L.slots.addChild(w);   // пятна ржавчины и потёртости
+    for(let k=0;k<4;k++){const a=R()*6.28,d=.58+R()*.18;stamp(k%2?T.glow:T.smoke,s[0]+.5+Math.cos(a)*d,s[1]+.5+Math.sin(a)*d,.05+R()*.08,k%2?0x1a1410:0x6a5a48,.35+R()*.3,R()*6);}   // мусор и обломки вокруг плиты
+  });}
   const st=spr(T.station,CELL,CELL);st.position.set((EXIT[0]+.5)*CELL,(EXIT[1]+.5)*CELL);L.slots.addChild(st);
   L.slots.addChild(rubbleG);
   if(warm)warm.tint=MAP.warm;
@@ -1781,6 +1789,7 @@ function syncTowers(){
     if(o.idle)o.idle.alpha=.16+.1*Math.sin(G.t*6+i*2)+(t.rec>0?.3:0);
     if(o.lvg&&o.lv===3)o.lvg.alpha=.22+.12*Math.sin(G.t*3+i);
     if(o.up)o.up.alpha=t.upAt!=null?Math.max(0,1-(G.t-t.upAt)/.7)*.9:0;
+    if(t.upAt!=null&&t.born==null){const ua=G.t-t.upAt;if(ua<.45){const k=1+Math.sin(ua/.45*Math.PI)*.2;o.c.scale.set(k);}else if(ua<.5)o.c.scale.set(1);}   // «подпрыгивает» при улучшении
     if(o.head){
       const rec=t.rec>0?Math.min(1,t.rec/.14):0;
       o.head.rotation=t.aim+(t.type==='sp'&&rec>0?.5:0);
@@ -1969,15 +1978,18 @@ function raidUpdate(){                                                          
   RAIDS.sh.position.set(x+.3*CELL,y+.5*CELL+Math.sin(Math.PI*k)*CELL*.8);RAIDS.sh.rotation=rot;RAIDS.sh.width=.62*CELL;RAIDS.sh.height=.5*CELL*fl;
 }
 /* живой мир: тени облаков (дневные карты), молнии и гроза («Руины»), мигающие огни порта */
-const WFX={mi:-1,clouds:[],beacons:[],flash:null,nextL:0,lt:0};
+const WFX={mi:-1,fog:[],clouds:[],beacons:[],flash:null,nextL:0,lt:0};
 function worldFx(){
   if(WFX.mi!==MI){
-    WFX.clouds.forEach(c=>c.destroy());WFX.beacons.forEach(b=>b.s.destroy());WFX.clouds=[];WFX.beacons=[];WFX.mi=MI;WFX.nextL=G.t+6+Math.random()*8;WFX.lt=0;
+    WFX.fog.forEach(c=>c.destroy());WFX.fog=[];WFX.clouds.forEach(c=>c.destroy());WFX.beacons.forEach(b=>b.s.destroy());WFX.clouds=[];WFX.beacons=[];WFX.mi=MI;WFX.nextL=G.t+6+Math.random()*8;WFX.lt=0;
     if(MAP.id==='wasteland'||MAP.id==='dunes')for(let k=0;k<3;k++){const c=spr(T.glow,(2.6+Math.random()*1.6)*CELL,(1.6+Math.random()*1.2)*CELL);c.tint=0;c.alpha=.16;c.rotation=Math.random()*3;c.ph=k*2.1;c.sp=.05+Math.random()*.03;L.fx.addChild(c);WFX.clouds.push(c);}
+    if(MAP.id==='city'||MAP.id==='port'||MAP.id==='dunes')for(let k=0;k<(MAP.id==='dunes'?4:6);k++){const f=spr(T.glow,(2.8+Math.random()*1.8)*CELL,(1.2+Math.random()*.9)*CELL);   // туман над дорогой, дым порта, пылевая завеса дюн
+      f.tint=MAP.id==='dunes'?0xf0d9a0:MAP.id==='port'?0x7a8088:0xb8c8d4;f.alpha=MAP.id==='dunes'?.1:.14;f.ph=k*1.7;f.sp=.012+Math.random()*.012;f.fy=(k+.5)/6*ROWS;f.dirx=k%2?1:-1;L.fx.addChild(f);WFX.fog.push(f);}
     if(MAP.id==='port')[[.25,.5,0xff3a2a],[5.75,2.6,0x3aff6a],[.25,5.6,0x3aff6a],[5.75,7.7,0xff3a2a],[.3,9.5,0xff3a2a]].forEach((p,k)=>{const s=spr(T.glow,.5*CELL,.5*CELL);s.tint=p[2];s.blendMode=ADD;s.position.set(p[0]*CELL,p[1]*CELL);L.fx.addChild(s);WFX.beacons.push({s,ph:k*1.3});});
   }
   if(!WFX.flash||WFX.flash.destroyed){WFX.flash=new PIXI.Sprite(PIXI.Texture.WHITE);WFX.flash.tint=0xcfe0ff;WFX.flash.blendMode=ADD;WFX.flash.alpha=0;app.stage.addChild(WFX.flash);}
   for(const c of WFX.clouds){const k=((G.t*c.sp+c.ph*.37)%1.5)-.25;c.position.set((k*1.2-.1)*COLS*CELL,(k*.7+c.ph*.12)%1*ROWS*CELL);}
+  for(const f of WFX.fog){const k=((G.t*f.sp*f.dirx+f.ph)%1.4+1.4)%1.4;f.position.set((k-.2)*COLS*CELL,(f.fy+Math.sin(G.t*.2+f.ph)*.4)*CELL);f.alpha=(f.alpha0||(f.alpha0=f.alpha))*(.75+.25*Math.sin(G.t*.3+f.ph));}
   for(const b of WFX.beacons)b.s.alpha=Math.sin(G.t*2.4+b.ph)>.2?.9:.12;
   const f=WFX.flash;f.width=app.screen.width;f.height=app.screen.height;
   if(MAP.id==='city'&&!G.paused){
