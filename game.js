@@ -527,7 +527,7 @@ function sparks(x,y,n,c,v0,dir,spread,g){                            // искр
   for(let i=0;i<n;i++){const a=(dir==null?Math.random()*6.28:dir+(Math.random()-.5)*(spread||1.2)),v=v0*(.5+Math.random()*.8);
     G.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-.2,g:g==null?5:g,life:.25+Math.random()*.35,max:.6,c,r:.014+Math.random()*.014});}
 }
-function dmgText(x,y,d,c){if(G.floats.length<24)G.floats.push({x:x+(Math.random()-.5)*.25,y:y-.25,text:String(Math.round(d)),t:.7,c:c||'#fff3c8',s:26});}
+function dmgText(x,y,d,c){if(G.floats.length<24)G.floats.push({x:x+(Math.random()-.5)*.25,y:y-.25,text:String(Math.round(d)),t:.7,c:c||'#fff3c8',s:32});}
 function boom(x,y,s){
   const lim=G.parts.length>650;                       // защита производительности: при перегрузе только вспышка и кольцо
   G.rings.push({x,y,t:.45,max:.45,s});G.rings.push({x,y,t:.7,max:.7,s:s*1.6});
@@ -567,7 +567,8 @@ function hurt(e,d,src){          // src: 'mg' | 'sp' | иначе (огонь/г
   if(e.hp<=0){
     const rw=Math.round(EN[e.type].rew*RUN.rew*(e.rwm||1));e.dead=true;G.scrap+=rw;save.kills++;if(isB(e.type))ach('boss');
     G.floats.push({x:e.x,y:e.y-.15,text:'+'+rw,t:.85,c:'#ffd24a',s:30});
-    boom(e.x,e.y,isB(e.type)?3:.6);sfx(isB(e.type)?'boom':'clang');
+    boom(e.x,e.y,isB(e.type)?3:(e.type==='armor'||e.type==='shield'||e.type==='doof')?1.2:(e.type==='medic'||e.type==='vaulter')?.9:e.type==='drone'?.5:.6);sfx(isB(e.type)?'boom':'clang');
+    if(!isB(e.type)&&(e.type==='armor'||e.type==='shield'||e.type==='doof'||e.type==='medic'))G.shake=Math.max(G.shake,.18);
     {const big=(isB(e.type))?4:(e.type==='armor'||e.type==='shield'||e.type==='medic')?2:1;      // колёса и броня разлетаются
      for(let k=0;k<4*big;k++){const a=Math.random()*6.28,v=1.4+Math.random()*2.6;
        G.parts.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,g:5.5,life:.8+Math.random()*.7,max:1.5,k:'deb',c:'#2a2623',r:.06+Math.random()*.05});}}
@@ -1571,7 +1572,7 @@ function fitSprite(s,name){const a=ART[name];s.width=a[0]*CELL;s.height=a[1]*CEL
 async function initRender(){
   ADD=PIXI.BLEND_MODES.ADD;ERASE=PIXI.BLEND_MODES.ERASE;MULT=PIXI.BLEND_MODES.MULTIPLY;
   app=new PIXI.Application({view:cv,resizeTo:$('cw'),antialias:true,backgroundAlpha:0,
-    resolution:Math.min(2,window.devicePixelRatio||1),autoDensity:true});
+    resolution:Math.min(3,window.devicePixelRatio||1),autoDensity:true});
   makeUtilTextures();
   await loadArt();
   world=new PIXI.Container();app.stage.addChild(world);
@@ -1848,12 +1849,12 @@ function makeEnemyObj(e){
   const st=new PIXI.Graphics();
   const bar=new PIXI.Container();
   const b0=new PIXI.Sprite(PIXI.Texture.WHITE);b0.tint=0;b0.alpha=.7;
-  const w=(isB(e.type)?.9:.5)*CELL;b0.width=w+4;b0.height=14;b0.position.set(-w/2-2,0);
-  const b1=new PIXI.Sprite(PIXI.Texture.WHITE);b1.height=10;b1.position.set(-w/2,2);
+  const w=(isB(e.type)?1:.62)*CELL;b0.width=w+6;b0.height=20;b0.position.set(-w/2-3,0);
+  const b1=new PIXI.Sprite(PIXI.Texture.WHITE);b1.height=14;b1.position.set(-w/2,3);
   bar.addChild(b0,b1);bar.y=-(isB(e.type)?.62:.5)*CELL;
   c.addChild(aura,sh,bodyC,st,bar);
-  let tag=null;if(e.aff||EN[e.type].trader){const tn=e.aff?AFF[e.aff].n:'Караван',tc=e.aff?AFF[e.aff].col:'#ffd070';tag=new PIXI.Text(tn,{fontFamily:'Trebuchet MS, Arial',fontSize:20,fontWeight:'bold',fill:tc,stroke:'#000',strokeThickness:5,lineJoin:'round'});tag.anchor.set(.5);tag.y=bar.y-18;c.addChild(tag);}
-  {const ic=roleBadge(e.type);if(ic){ic.position.set(-w/2-.17*CELL,bar.y+7);c.addChild(ic);}}   // значок роли слева от полоски здоровья (виден и без цвета контура)
+  let tag=null;if(e.aff||EN[e.type].trader){const tn=e.aff?AFF[e.aff].n:'Караван',tc=e.aff?AFF[e.aff].col:'#ffd070';tag=new PIXI.Text(tn,{fontFamily:'Trebuchet MS, Arial',fontSize:25,fontWeight:'bold',fill:tc,stroke:'#000',strokeThickness:6,lineJoin:'round'});tag.anchor.set(.5);tag.y=bar.y-18;c.addChild(tag);}
+  {const ic=roleBadge(e.type);if(ic){ic.position.set(-w/2-.24*CELL,bar.y+9);c.addChild(ic);}}   // значок роли слева от полоски здоровья (виден и без цвета контура)
   L.enemies.addChild(c);
   return {c,fr,fi:0,ol,aura,ov,tag,rot:EN[e.type].rot||0,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
 }
@@ -1861,7 +1862,7 @@ function makeEnemyObj(e){
 const ROLEICON={biker:'fast',warboy:'fast',vaulter:'fast',armor:'armor',shield:'armor',sniper:'aim',doof:'aim',medic:'heal',drone:'air',boss:'boss',wormb:'boss',trader:'coin'};
 function roleBadge(type){
   const k=ROLEICON[type];if(!k)return null;
-  const col=OUTL[type]||0xffe2a0,g=new PIXI.Graphics(),R=25;
+  const col=OUTL[type]||0xffe2a0,g=new PIXI.Graphics(),R=25;g.scale.set(1.3);
   g.beginFill(0x120a05,.82);g.lineStyle(4,col,1);g.drawCircle(0,0,R);g.endFill();
   g.lineStyle(5,col,1);
   if(k==='fast'){for(const dx of[-7,5]){g.moveTo(dx-5,-9);g.lineTo(dx+5,0);g.lineTo(dx-5,9);}}
@@ -1967,8 +1968,25 @@ function raidUpdate(){                                                          
   RAIDS.s.visible=RAIDS.sh.visible=true;RAIDS.s.position.set(x,y);RAIDS.s.rotation=rot;RAIDS.s.width=.62*CELL;RAIDS.s.height=.5*CELL*fl;
   RAIDS.sh.position.set(x+.3*CELL,y+.5*CELL+Math.sin(Math.PI*k)*CELL*.8);RAIDS.sh.rotation=rot;RAIDS.sh.width=.62*CELL;RAIDS.sh.height=.5*CELL*fl;
 }
+/* живой мир: тени облаков (дневные карты), молнии и гроза («Руины»), мигающие огни порта */
+const WFX={mi:-1,clouds:[],beacons:[],flash:null,nextL:0,lt:0};
+function worldFx(){
+  if(WFX.mi!==MI){
+    WFX.clouds.forEach(c=>c.destroy());WFX.beacons.forEach(b=>b.s.destroy());WFX.clouds=[];WFX.beacons=[];WFX.mi=MI;WFX.nextL=G.t+6+Math.random()*8;WFX.lt=0;
+    if(MAP.id==='wasteland'||MAP.id==='dunes')for(let k=0;k<3;k++){const c=spr(T.glow,(2.6+Math.random()*1.6)*CELL,(1.6+Math.random()*1.2)*CELL);c.tint=0;c.alpha=.16;c.rotation=Math.random()*3;c.ph=k*2.1;c.sp=.05+Math.random()*.03;L.fx.addChild(c);WFX.clouds.push(c);}
+    if(MAP.id==='port')[[.25,.5,0xff3a2a],[5.75,2.6,0x3aff6a],[.25,5.6,0x3aff6a],[5.75,7.7,0xff3a2a],[.3,9.5,0xff3a2a]].forEach((p,k)=>{const s=spr(T.glow,.5*CELL,.5*CELL);s.tint=p[2];s.blendMode=ADD;s.position.set(p[0]*CELL,p[1]*CELL);L.fx.addChild(s);WFX.beacons.push({s,ph:k*1.3});});
+  }
+  if(!WFX.flash||WFX.flash.destroyed){WFX.flash=new PIXI.Sprite(PIXI.Texture.WHITE);WFX.flash.tint=0xcfe0ff;WFX.flash.blendMode=ADD;WFX.flash.alpha=0;app.stage.addChild(WFX.flash);}
+  for(const c of WFX.clouds){const k=((G.t*c.sp+c.ph*.37)%1.5)-.25;c.position.set((k*1.2-.1)*COLS*CELL,(k*.7+c.ph*.12)%1*ROWS*CELL);}
+  for(const b of WFX.beacons)b.s.alpha=Math.sin(G.t*2.4+b.ph)>.2?.9:.12;
+  const f=WFX.flash;f.width=app.screen.width;f.height=app.screen.height;
+  if(MAP.id==='city'&&!G.paused){
+    if(G.t>=WFX.nextL){WFX.lt=.5;WFX.nextL=G.t+9+Math.random()*10;}
+    if(WFX.lt>0){WFX.lt-=1/60;const k=WFX.lt/.5;f.alpha=(k>.7?.35:k>.55?.04:k>.4?.28:0)+k*.05;if(WFX.lt<=0)f.alpha=0;}
+  }else f.alpha=0;
+}
 function syncFx(){
-  birdsUpdate();raidUpdate();
+  birdsUpdate();raidUpdate();worldFx();
   if(grain){grain.width=app.screen.width;grain.height=app.screen.height;grain.tilePosition.set(Math.random()*128,Math.random()*128);}
   if(alertS){alertS.width=app.screen.width;alertS.height=app.screen.height;alertS.alpha=Math.max(0,G.alert)*.35;}
   const sh=G.shake>0?G.shake:0;
@@ -2161,6 +2179,8 @@ function syncFx(){
       else if(t.type==='fl'){lightAt(cx+Math.cos(t.aim)*.5,cy+Math.sin(t.aim)*.5,2.4,.9,0xffa050);
         if(t.tx!=null)lightAt(t.tx,t.ty,2.2,.75+.15*Math.sin(G.t*30),0xff9040);}
       else if(t.type==='sp')lightAt(cx,cy,1.3,.45,0xb0e0ff);
+      else if(t.type==='tes')lightAt(cx,cy,2.2,.8,0x8fd8ff);
+      else if(t.type==='mor')lightAt(cx+Math.cos(t.aim)*.4,cy+Math.sin(t.aim)*.4,1.8,.85,0xffb060);
     }
   });
   for(const l of G.links){
