@@ -166,9 +166,32 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 .scr h1{animation:ttl 4s ease-in-out infinite}
 @keyframes ttl{50%{text-shadow:0 3px 0 #7a2c08,0 6px 0 #3a1204,0 0 44px #ff8a20aa}}
 .scr .card{box-shadow:0 3px 8px #0008,inset 0 1px 0 #ffffff14}
+
+/* ---- компьютер: на весь экран — слева статистика и способности, по центру поле, справа управление; вокруг размытый фон карты ---- */
+#bgfx{position:fixed;inset:-6%;z-index:0;background:#0a0705 var(--bgimg) center/cover;filter:blur(18px) brightness(.5) saturate(1.15)}
+#bgfx::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 35%,#000a 100%)}
+#app{background:transparent;z-index:1}
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+  html,body{background:#0a0705}
+  #app{max-width:none;width:100%;display:grid;grid-template-columns:minmax(240px,1fr) auto minmax(240px,1fr);grid-template-rows:auto 1fr;column-gap:0;background:transparent;z-index:1}
+  #cw{grid-column:2;grid-row:1/3;height:100dvh;width:calc(100dvh*.6);box-shadow:0 0 0 3px #1a0f08,0 0 0 5px #8a5a30,0 0 70px #000}
+  #top{grid-column:1;grid-row:1;align-self:start;margin:18px 18px 0 auto;width:min(300px,calc(100% - 36px));height:auto;padding:12px 10px;border:3px solid #1a0f08;border-radius:14px;font-size:15px;box-shadow:0 4px 14px #000b,inset 0 0 0 1px #8a5a3055}
+  #top b{font-size:26px}
+  #top .ic{width:30px;height:30px}
+  #abil{grid-column:1;grid-row:2;align-self:start;margin:14px 18px 0 auto;width:min(300px,calc(100% - 36px));flex-direction:column;align-items:stretch;gap:12px;padding:12px 10px;border:3px solid #1a0f08;border-radius:14px;box-shadow:0 4px 14px #000b}
+  #abbtn{justify-content:space-around}
+  .ab{width:64px;height:64px}
+  .ab img{width:46px;height:46px}
+  #nextw{flex:none;flex-wrap:wrap;overflow:visible;white-space:normal;font-size:14px;gap:6px 10px}
+  #hint{position:static;left:auto;right:auto;top:auto;bottom:auto;padding:8px 10px;font-size:14px}
+  #bot{grid-column:3;grid-row:1/3;align-self:start;margin:18px auto 0 18px;width:min(300px,calc(100% - 36px));height:auto;flex-direction:column;gap:10px;padding:12px;border:3px solid #1a0f08;border-radius:14px;box-shadow:0 4px 14px #000b}
+  #bot button{flex:none!important;font-size:18px;padding:12px}
+  #toast{top:20px}
+}
 </style>
 </head>
 <body>
+<div id="bgfx"></div>
 <div id="app">
   <div id="toast"></div>
   <div id="top"><span title="Лом"><img class="ic" data-ui="scrap" alt=""><b id="hScrap">100</b></span><span title="Топливо"><img class="ic" data-ui="fuel" alt=""><b id="hFuel">10</b><i>/10</i></span><span title="Волна"><img class="ic" data-ui="skull" alt=""><b id="hWave">0</b><i>/<em id="hWaveMax">12</em></i></span></div>

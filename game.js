@@ -67,6 +67,7 @@ const TT={
   gen:{n:'Генератор',cost:35,range:0,up:[30,50]},
   tes:{n:'Тесла',cost:55,range:2.2,up:[45,70]},
   mor:{n:'Миномёт',cost:60,range:3.6,up:[45,75]}};
+const TROLE={mg:0xffd24a,fl:0xff7a2a,sp:0x8ae35a,gen:0xfff09a,tes:0x6fd6ff,mor:0xff5a5a};
 const TKEYS=['mg','fl','sp','gen','tes','mor'];
 /* уровни башен 1..3: значения по индексу уровня; у генератора усиливается бонус комбо */
 const MAXLV=3;
@@ -124,6 +125,8 @@ const EN={
   trader:{hp:160,sp:.7,leak:0,rew:70,reach:0,trader:1,nm:'Торговый караван'},        // мирный: башни его не трогают, пока игрок не решит «ограбить»
   boss:{hp:900,sp:.5,leak:10,rew:100,reach:2,dps:28},
   wormb:{hp:950,sp:.55,leak:10,rew:120,reach:2,dps:24,skin:'worm',rot:Math.PI/2}};   // песчаный червь: ныряет под землю, пока под землёй — неуязвим
+/* цвет контура врага = роль: быстрые и камикадзе — оранжевый, бронированные — голубой, дальнобойные — красный, воздух — бирюзовый, лекарь — зелёный, караван — золотой */
+const OUTL={raider:0xffe2a0,biker:0xff8a4a,armor:0x9ec8ff,shield:0x9ec8ff,sniper:0xff5a5a,drone:0x7fe8ff,medic:0x7fe36a,warboy:0xff8a4a,vaulter:0xff8a4a,doof:0xff5a5a,trader:0xffd24a,boss:0xff6a3a,wormb:0xff6a3a};
 /* 12 волн на каждой карте; здоровье растёт с волной, плюс множитель карты (MAP.hp/MAP.cnt) */
 const WAVES=[
   {raider:8},{raider:10,biker:4},{raider:8,biker:6,armor:2},{raider:7,armor:2,drone:4,warboy:6},{raider:6,biker:8,armor:2,shield:1,warboy:6},
@@ -1692,6 +1695,7 @@ function applyMapScene(){        // перестраивает карту, пл�
   if(!mapSpr||!L.slots)return;
   if(decalRT)app.renderer.render(new PIXI.Container(),{renderTexture:decalRT,clear:true});
   mapSpr.texture=T[MAP.art]||T.map;
+  document.documentElement.style.setProperty('--bgimg','url('+((window.__ASSETS&&window.__ASSETS[MAP.art])||('assets/'+MAP.art+'.webp'))+')');
   buildDecor();
   {const R=rnd(MAP.decor?MAP.decor.seed*7+3:5);                                      // разводы масла, подпалины и следы протекторов — «жизнь» земли
    for(let k=0;k<26;k++){const x=R()*COLS,y=R()*ROWS;stamp(T.smoke,x,y,.5+R()*1.3,k%3?0x1a1410:0x3a2a1a,.05+R()*.09,R()*6);}
@@ -1755,6 +1759,9 @@ function makeTowerObj(i,t){
     const b1=new PIXI.Sprite(PIXI.Texture.WHITE);b1.height=10;b1.position.set(-.36*CELL+2,.36*CELL+2);
     o.bar.addChild(b0,b1);o.b1=b1;c.addChild(o.bar);
   }
+  if(key!=='rubble'&&TROLE[key]){                                                           // цветное кольцо роли под башней: жёлтый пулемёт, оранжевый огнемёт, зелёные шипы, золотой генератор, голубая тесла, красный миномёт
+    const rg=new PIXI.Graphics();rg.lineStyle(14,0x120a05,.8);rg.drawCircle(0,.03*CELL,.47*CELL);rg.lineStyle(8,TROLE[key],1);rg.drawCircle(0,.03*CELL,.47*CELL);
+    c.addChildAt(rg,0);o.role=rg;}
   L.towers.addChild(c);
   return o;
 }
@@ -1831,6 +1838,8 @@ function makeEnemyObj(e){
     const t=new PIXI.TilingSprite(T.tread,r[2]/100*Wd,r[3]/100*Hd);
     t.position.set(r[0]/100*Wd-Wd/2,r[1]/100*Hd-Hd/2);t.tileScale.set(1.3);t.alpha=.6;trs.push(t);
   }
+  const ol=[];{const od=8,oc=OUTL[e.type]||0xffe2a0,tx=fr?fr[0]:T[sk];                  // контур: четыре копии спрайта со сдвигом под телом, цвет по роли
+    for(const [dx,dy] of [[od,0],[-od,0],[0,od],[0,-od],[od*.7,od*.7],[-od*.7,od*.7],[od*.7,-od*.7],[-od*.7,-od*.7]]){const q=spr(tx,a[0]*CELL,a[1]*CELL);q.tint=oc;q.alpha=1;q.position.set(dx,dy);ol.push(q);bodyC.addChild(q);}}
   bodyC.addChild(body,...trs,lamp,fl);
   let ov=null;if(e.aff){const cf={tough:[1,1],swift:[.95,1.05],boom:[null,.85],cmd:[.75,null]}[e.aff],tx=T[AFF[e.aff].ov],ar=tx.width/tx.height;   // наложенный силуэт элиты: плиты, баллоны, бочки или барабаны со знаменем
     let w=cf[0]!=null?a[0]*CELL*cf[0]:null,h=cf[1]!=null?a[1]*CELL*cf[1]:null;if(w==null)w=h*ar;if(h==null)h=w/ar;ov=spr(tx,w,h);bodyC.addChild(ov);}
@@ -1844,8 +1853,25 @@ function makeEnemyObj(e){
   bar.addChild(b0,b1);bar.y=-(isB(e.type)?.62:.5)*CELL;
   c.addChild(aura,sh,bodyC,st,bar);
   let tag=null;if(e.aff||EN[e.type].trader){const tn=e.aff?AFF[e.aff].n:'Караван',tc=e.aff?AFF[e.aff].col:'#ffd070';tag=new PIXI.Text(tn,{fontFamily:'Trebuchet MS, Arial',fontSize:20,fontWeight:'bold',fill:tc,stroke:'#000',strokeThickness:5,lineJoin:'round'});tag.anchor.set(.5);tag.y=bar.y-18;c.addChild(tag);}
+  {const ic=roleBadge(e.type);if(ic){ic.position.set(-w/2-.17*CELL,bar.y+7);c.addChild(ic);}}   // значок роли слева от полоски здоровья (виден и без цвета контура)
   L.enemies.addChild(c);
-  return {c,fr,fi:0,aura,ov,tag,rot:EN[e.type].rot||0,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
+  return {c,fr,fi:0,ol,aura,ov,tag,rot:EN[e.type].rot||0,sh,bodyC,body,trs,fl,spark,st,bar,b1,w,lamp,last:0};
+}
+/* значок роли врага: стрелки — быстрый, щит — броня, прицел — дальний бой, крестик — лекарь, ромб — воздух, звезда — босс, монета — караван */
+const ROLEICON={biker:'fast',warboy:'fast',vaulter:'fast',armor:'armor',shield:'armor',sniper:'aim',doof:'aim',medic:'heal',drone:'air',boss:'boss',wormb:'boss',trader:'coin'};
+function roleBadge(type){
+  const k=ROLEICON[type];if(!k)return null;
+  const col=OUTL[type]||0xffe2a0,g=new PIXI.Graphics(),R=25;
+  g.beginFill(0x120a05,.82);g.lineStyle(4,col,1);g.drawCircle(0,0,R);g.endFill();
+  g.lineStyle(5,col,1);
+  if(k==='fast'){for(const dx of[-7,5]){g.moveTo(dx-5,-9);g.lineTo(dx+5,0);g.lineTo(dx-5,9);}}
+  else if(k==='armor'){g.beginFill(col,.9);g.lineStyle(0);g.moveTo(-10,-11);g.lineTo(10,-11);g.lineTo(10,2);g.lineTo(0,13);g.lineTo(-10,2);g.closePath();g.endFill();}
+  else if(k==='aim'){g.drawCircle(0,0,9);g.moveTo(-15,0);g.lineTo(-5,0);g.moveTo(5,0);g.lineTo(15,0);g.moveTo(0,-15);g.lineTo(0,-5);g.moveTo(0,5);g.lineTo(0,15);}
+  else if(k==='heal'){g.lineStyle(0);g.beginFill(col,1);g.drawRect(-4,-12,8,24);g.drawRect(-12,-4,24,8);g.endFill();}
+  else if(k==='air'){g.lineStyle(0);g.beginFill(col,1);g.moveTo(0,-13);g.lineTo(13,0);g.lineTo(0,13);g.lineTo(-13,0);g.closePath();g.endFill();}
+  else if(k==='boss'){g.lineStyle(0);g.beginFill(col,1);for(let i=0;i<10;i++){const r=i%2?5:13,a=-Math.PI/2+i*Math.PI/5;g.lineTo(Math.cos(a)*r,Math.sin(a)*r);}g.endFill();}
+  else if(k==='coin'){g.lineStyle(0);g.beginFill(col,1);g.drawCircle(0,0,11);g.endFill();}
+  return g;
 }
 function syncEnemies(){
   const seen=new Set();
@@ -1855,7 +1881,7 @@ function syncEnemies(){
     o.c.position.set(e.x*CELL,e.y*CELL);
     o.bodyC.rotation=e.a+o.rot+Math.sin(G.t*9+e.ph)*.012;o.sh.rotation=e.a+o.rot;
     {const k=1+(Math.min(1,G.wave/NWAVES))*.9;o.sh.position.x=.06*CELL*k;o.sh.position.y=.09*CELL*k;}   // тень удлиняется к закату
-    if(o.fr){const i=e.cling!=null||e.jump?1:Math.floor(e.d*(e.type==='warboy'?5.5:4.5))%4;if(i!==o.fi){o.fi=i;o.body.texture=o.fr[i];o.sh.texture=o.fr[i];o.fl.texture=o.fr[i];}}   // кадры бега привязаны к пройденному пути
+    if(o.fr){const i=e.cling!=null||e.jump?1:Math.floor(e.d*(e.type==='warboy'?5.5:4.5))%4;if(i!==o.fi){o.fi=i;o.body.texture=o.fr[i];o.sh.texture=o.fr[i];o.ol.forEach(q=>q.texture=o.fr[i]);o.fl.texture=o.fr[i];}}   // кадры бега привязаны к пройденному пути
     o.c.alpha=e.sub?.3:1;if(o.aura.visible)o.aura.alpha=.4+.2*Math.sin(G.t*5+e.ph);
     {const k=(e.flash>0?1.045:1)*(1+(e.air||0)*.35);o.bodyC.scale.set(o.bodyC.scale.x+(k-o.bodyC.scale.x)*.5);}   // «встряска» от попадания, увеличение в прыжке
     o.bodyC.y=Math.sin(G.t*12+e.ph)*(isB(e.type)?1.5:2.2);          // лёгкая тряска подвески
@@ -2096,14 +2122,23 @@ function syncFx(){
 
   // плавающий текст
   const cur=new Set();
+  const lblR=[];let annY=3.1;                                       // объявления по центру (x=3) встают столбиком, а не друг на друга
   for(const f of G.floats){
     cur.add(f);
     let t=FO.get(f);
     if(!t){
       t=new PIXI.Text(f.text,{fontFamily:'Trebuchet MS, Arial',fontSize:f.s||44,fontWeight:'bold',fill:f.c,stroke:'#000',strokeThickness:7,lineJoin:'round'});
       t.anchor.set(.5);floatLayer.addChild(t);FO.set(f,t);
+      if(t.width>COLS*CELL*.94)t.scale.set(COLS*CELL*.94/t.width);   // длинная подпись не вылезает за поле
     }
-    t.position.set(f.x*CELL,f.y*CELL);t.alpha=Math.min(1,f.t);
+    let fy=f.y;
+    if(f.x===3&&(f.s||44)>=34){const h=(f.s||44)/CELL*1.25+.12;fy=annY+h/2;annY+=h;}
+    if(f.text.length>3&&!(f.x===3&&(f.s||44)>=34)){                  // подписи комбо и уровней рядом друг с другом разводим по высоте
+      const w=t.width,h=t.height;let moved=true,guard=0;
+      while(moved&&guard++<6){moved=false;for(const r of lblR){if(Math.abs(f.x*CELL-r.x)<(w+r.w)/2&&Math.abs(fy*CELL-r.y)<(h+r.h)/2){fy=(r.y-(h+r.h)/2-2)/CELL;moved=true;}}}
+      lblR.push({x:f.x*CELL,y:fy*CELL,w,h});
+    }
+    t.position.set(f.x*CELL,fy*CELL);t.alpha=Math.min(1,f.t);
   }
   for(const [f,t] of FO)if(!cur.has(f)){t.destroy();FO.delete(f);}
 
