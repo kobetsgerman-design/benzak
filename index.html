@@ -168,7 +168,7 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 .scr .card{box-shadow:0 3px 8px #0008,inset 0 1px 0 #ffffff14}
 
 /* ---- компьютер: на весь экран — слева статистика и способности, по центру поле, справа управление; вокруг размытый фон карты ---- */
-#bgfx{position:fixed;inset:-6%;z-index:0;background:#0a0705 var(--bgimg) center/cover;filter:blur(18px) brightness(.5) saturate(1.15)}
+#bgfx{position:fixed;inset:0;z-index:0;background:#0a0705 var(--bgimg) center/cover}
 #bgfx::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 35%,#000a 100%)}
 #app{background:transparent;z-index:1}
 @media (min-width:900px) and (min-aspect-ratio:5/4){
@@ -237,7 +237,7 @@ button:not(:disabled):hover{filter:brightness(1.1)}
 
 <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#120a06;color:#ffb347;font:bold 20px sans-serif;z-index:99">Загрузка…</div>
 <script src="lib/pixi.min.js"></script>
-<script src="game.js?v=2"></script>
+<script src="game.js?v=3"></script>
 <script>
 /* картинка босса на заставке и значки интерфейса: из встроенных ассетов (Benzak.html) или assets/*.webp, при ошибке — PNG/JPG */
 (function(){var h=document.getElementById('mHero'),a=window.__ASSETS;
